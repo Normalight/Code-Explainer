@@ -26,6 +26,16 @@ const AST_COLORS: Record<string, string> = {
   variable: '#f59e0b',
 };
 
+const AST_SUPPORTED_EXTENSIONS = new Set([
+  'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'go', 'rs', 'rb', 'c', 'cpp', 'h',
+  'css', 'sh', 'bash', 'json', 'html',
+]);
+
+function isAstSupported(filePath: string): boolean {
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  return AST_SUPPORTED_EXTENSIONS.has(ext);
+}
+
 const CODE_EXTENSIONS = new Set([
   'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'go', 'rs', 'rb', 'c', 'cpp', 'h',
   'cs', 'kt', 'swift', 'php', 'scala', 'sh', 'bash', 'sql', 'lua', 'r',
@@ -304,7 +314,9 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
       {/* Sub-header: tabs + analyze button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('explain')}</button>
-        <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('ast')}</button>
+        {isAstSupported(filePath) && (
+          <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('ast')}</button>
+        )}
         {codeTab === 'explain' && !analyzing && segments.length === 0 && code && (
           <button onClick={startAnalysis}
             style={{

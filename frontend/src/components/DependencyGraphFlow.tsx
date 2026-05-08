@@ -57,18 +57,39 @@ interface Props {
 }
 
 export default function DependencyGraphFlow({ nodes: rawNodes, edges: rawEdges, onFileClick }: Props) {
+  // Only show nodes that are connected by edges
+  const { filteredNodes, filteredEdges } = useMemo(() => {
+    const connectedIds = new Set<string>();
+    rawEdges.forEach(e => {
+      connectedIds.add(e.source);
+      connectedIds.add(e.target);
+    });
+    const filteredNodes = rawNodes.filter(n => connectedIds.has(n.id));
+    // Deduplicate edges
+    const seen = new Set<string>();
+    const filteredEdges = rawEdges.filter(e => {
+      const key = `${e.source}->${e.target}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return { filteredNodes, filteredEdges };
+  }, [rawNodes, rawEdges]);
+
   const initialNodes: Node[] = useMemo(() => {
+    if (filteredNodes.length === 0) return [];
+
     const dirs = new Map<string, number>();
-    rawNodes.forEach((n) => {
+    filteredNodes.forEach((n) => {
       const dir = n.id.includes('/') ? n.id.substring(0, n.id.lastIndexOf('/')) : 'root';
       dirs.set(dir, (dirs.get(dir) || 0) + 1);
     });
 
     const dirKeys = [...dirs.keys()];
-    return rawNodes.map((n, _i) => {
+    return filteredNodes.map((n) => {
       const dir = n.id.includes('/') ? n.id.substring(0, n.id.lastIndexOf('/')) : 'root';
       const colIdx = dirKeys.indexOf(dir);
-      const rowInDir = rawNodes.filter(
+      const rowInDir = filteredNodes.filter(
         (other) => (other.id.includes('/') ? other.id.substring(0, other.id.lastIndexOf('/')) : 'root') === dir
       ).indexOf(n);
 
@@ -79,17 +100,18 @@ export default function DependencyGraphFlow({ nodes: rawNodes, edges: rawEdges, 
         data: { label: n.id.split('/').pop() || n.id, language: n.language },
       };
     });
-  }, [rawNodes]);
+  }, [filteredNodes]);
 
   const initialEdges: Edge[] = useMemo(() =>
-    rawEdges.map((e, i) => ({
+    filteredEdges.map((e, i) => ({
       id: `e-${i}`,
       source: e.source,
       target: e.target,
       animated: false,
+      type: 'smoothstep',
       style: { stroke: 'var(--accent)', strokeWidth: 1.5 },
     })),
-    [rawEdges]
+    [filteredEdges]
   );
 
   const [nodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
