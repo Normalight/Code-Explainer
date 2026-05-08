@@ -17,15 +17,21 @@ public class AskService {
     public String buildAskPrompt(String selectedCode, int startLine, int endLine,
                                   String filePath, String question,
                                   String projectName, String grepContext) {
-        return buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, "");
+        return buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, "", "zh");
     }
 
     public String buildAskPrompt(String selectedCode, int startLine, int endLine,
                                   String filePath, String question,
                                   String projectName, String grepContext, String ragContext) {
+        return buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, ragContext, "zh");
+    }
+
+    public String buildAskPrompt(String selectedCode, int startLine, int endLine,
+                                  String filePath, String question,
+                                  String projectName, String grepContext, String ragContext, String lang) {
         StringBuilder sb = new StringBuilder();
         sb.append("""
-            你是一个代码解释助手。用户选中了一段代码并提出了一个问题，请用中文回答，技术术语保留英文。
+            你是一个代码解释助手。用户选中了一段代码并提出了一个问题。
 
             ## 项目信息
             - 项目：%s
@@ -66,6 +72,12 @@ public class AskService {
             - 纯文本回复，不要用 markdown 标题
             """.formatted(question));
 
+        if ("en".equals(lang)) {
+            sb.append("\nIMPORTANT: Answer in English. Keep technical terms as-is.\n");
+        } else {
+            sb.append("\n重要：用中文回答，技术术语保留英文原文。\n");
+        }
+
         return sb.toString();
     }
 
@@ -83,22 +95,15 @@ public class AskService {
 
     public String ask(String selectedCode, int startLine, int endLine,
                        String filePath, String question,
-                       String projectName, String fullCode) {
-        String grepContext = extractCodeSurrounding(fullCode, startLine, endLine, 10);
-        String prompt = buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext);
-
-        ChatClient chatClient = chatClientBuilder.build();
-        return chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content();
+                       String projectName, String fullCode, String ragContext) {
+        return ask(selectedCode, startLine, endLine, filePath, question, projectName, fullCode, ragContext, "zh");
     }
 
     public String ask(String selectedCode, int startLine, int endLine,
                        String filePath, String question,
-                       String projectName, String fullCode, String ragContext) {
+                       String projectName, String fullCode, String ragContext, String lang) {
         String grepContext = extractCodeSurrounding(fullCode, startLine, endLine, 10);
-        String prompt = buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, ragContext);
+        String prompt = buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, ragContext, lang);
 
         ChatClient chatClient = chatClientBuilder.build();
         return chatClient.prompt()

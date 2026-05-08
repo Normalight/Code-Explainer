@@ -103,7 +103,7 @@ public class AutoAnalysisService {
                     fileRepository.save(file);
 
                     // Segment and explain
-                    List<CodeSegment> segments = explanationService.segmentCode(content, file.getPath(), file.getLanguage());
+                    List<CodeSegment> segments = explanationService.segmentCode(content, file.getPath(), file.getLanguage(), "zh");
                     String segmentsJson = CodeSegment.toJsonArray(segments);
                     List<String> explanationList = new java.util.ArrayList<>();
 
@@ -117,7 +117,7 @@ public class AutoAnalysisService {
 
                         String explanation = explanationService.explainSegment(
                                 segmentCode.toString(), segment.startLine(), segment.endLine(),
-                                segment.title(), file.getPath(), project.getName(), "source file");
+                                segment.title(), file.getPath(), project.getName(), "source file", "zh");
                         explanationList.add(explanation);
                     }
 

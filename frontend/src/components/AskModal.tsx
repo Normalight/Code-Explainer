@@ -46,7 +46,8 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
     setLoading(true);
 
     try {
-      const url = getAskUrl(projectId, filePath, startLine, endLine, question);
+      const lang = localStorage.getItem('code-explainer-locale')?.startsWith('en') ? 'en' : 'zh';
+      const url = getAskUrl(projectId, filePath, startLine, endLine, question, lang);
       const eventSource = new EventSource(url);
       let answer = '';
 

@@ -16,9 +16,16 @@ public class ExplanationService {
         this.chatClientBuilder = chatClientBuilder;
     }
 
-    public List<CodeSegment> segmentCode(String code, String filePath, String language) {
+    private static String langDirective(String lang) {
+        if ("en".equals(lang)) {
+            return "\n\nIMPORTANT: All text output (titles, descriptions, explanations, summaries, issue titles/descriptions, module roles) MUST be in English. Keep technical terms as-is.\n";
+        }
+        return "\n\n重要：所有文本输出（标题、描述、解释、总结、问题描述、模块职责等）必须使用中文，技术术语保留英文原文。\n";
+    }
+
+    public List<CodeSegment> segmentCode(String code, String filePath, String language, String lang) {
         int lineCount = code.split("\n", -1).length;
-        String prompt = buildSegmentationPrompt(code, filePath, language);
+        String prompt = buildSegmentationPrompt(code, filePath, language) + langDirective(lang);
 
         try {
             if (chatClientBuilder == null) throw new RuntimeException("No ChatClient configured");
@@ -45,8 +52,8 @@ public class ExplanationService {
 
     public String explainSegment(String code, int startLine, int endLine,
                                   String title, String filePath,
-                                  String projectContext, String fileRole) {
-        String prompt = buildExplanationPrompt(code, startLine, endLine, title, filePath, projectContext, fileRole);
+                                  String projectContext, String fileRole, String lang) {
+        String prompt = buildExplanationPrompt(code, startLine, endLine, title, filePath, projectContext, fileRole) + langDirective(lang);
 
         ChatClient chatClient = chatClientBuilder.build();
         return chatClient.prompt()
@@ -105,7 +112,6 @@ public class ExplanationService {
                                           String projectContext, String fileRole) {
         return """
             你是一个代码解释助手，正在为开发者解释一个项目中的代码文件。
-            请用中文解释，技术术语保留英文原文。
 
             ## 项目上下文
             - 项目类型：%s
@@ -127,7 +133,7 @@ public class ExplanationService {
             """.formatted(projectContext, filePath, fileRole, startLine, endLine, title, code);
     }
 
-    public String buildQualityAssessmentPrompt(String code, String filePath, String language) {
+    public String buildQualityAssessmentPrompt(String code, String filePath, String language, String lang) {
         return """
             你是一个代码审查专家。请对以下文件进行质量评估。
 
@@ -172,10 +178,10 @@ public class ExplanationService {
             - issues 按严重程度排序：critical → warning → suggestion
             - 每个维度必须给出 1-5 分，不要都是 5 分或都是 3 分
             - issues 不超过 10 个，只列最重要的
-            """.formatted(filePath, language, code);
+            """.formatted(filePath, language, code) + langDirective(lang);
     }
 
-    public String buildStructurePrompt(String projectName, String fileTree) {
+    public String buildStructurePrompt(String projectName, String fileTree, String lang) {
         return """
             你是一个项目结构分析专家。请分析以下项目的结构。
 
@@ -189,8 +195,8 @@ public class ExplanationService {
 
             ## 输出 JSON
             {
-              "projectType": "<项目类型，如 Flask web app, React SPA, Spring Boot API 等>",
-              "architecture": "<架构模式，如 MVC, 微服务, 单体等>",
+              "projectType": "<项目类型>",
+              "architecture": "<架构模式>",
               "entryPoints": ["<入口文件列表>"],
               "modules": [
                 {
@@ -206,11 +212,11 @@ public class ExplanationService {
             - 只返回 JSON，不要其他文字
             - 基于文件名、目录结构、语言推断项目类型
             - modules 列出主要模块，不要逐个文件列举
-            """.formatted(projectName, fileTree);
+            """.formatted(projectName, fileTree) + langDirective(lang);
     }
 
-    public String analyzeProjectStructure(String projectName, String fileTree) {
-        String prompt = buildStructurePrompt(projectName, fileTree);
+    public String analyzeProjectStructure(String projectName, String fileTree, String lang) {
+        String prompt = buildStructurePrompt(projectName, fileTree, lang);
 
         try {
             ChatClient chatClient = chatClientBuilder.build();

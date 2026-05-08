@@ -116,8 +116,9 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const startAnalysis = useCallback(() => {
     if (!projectId || !filePath || !code || !isCode || analyzing) return;
     setAnalyzing(true);
+    const lang = localStorage.getItem('code-explainer-locale')?.startsWith('en') ? 'en' : 'zh';
 
-    const es = new EventSource(getExplainUrl(projectId, filePath));
+    const es = new EventSource(getExplainUrl(projectId, filePath, lang));
     es.addEventListener('segment_start', (e) => {
       setSegments((prev) => [...prev, JSON.parse(e.data)]);
     });
@@ -133,7 +134,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     });
     es.onerror = () => {
       es.close();
-      getQuality(projectId, filePath)
+      getQuality(projectId, filePath, lang)
         .then((text) => { try { setQuality(JSON.parse(text)); } catch {} })
         .catch(() => {});
     };

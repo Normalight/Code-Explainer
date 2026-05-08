@@ -33,4 +33,6 @@ public class Project {
 
     @Column(columnDefinition = "TEXT")
     private String structureAnalysis;
+
+    private String structureAnalysisLang;
 }

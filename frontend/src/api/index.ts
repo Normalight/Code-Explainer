@@ -71,20 +71,20 @@ export async function getProgress(projectId: number): Promise<ProgressInfo> {
   return res.json();
 }
 
-export async function getStructure(projectId: number): Promise<{ analysis: string }> {
-  const res = await fetch(`${API_BASE}/${projectId}/structure`);
+export async function getStructure(projectId: number, lang = 'zh'): Promise<{ analysis: string }> {
+  const res = await fetch(`${API_BASE}/${projectId}/structure?lang=${encodeURIComponent(lang)}`);
   if (!res.ok) throw new Error(`Failed to get structure: ${res.status}`);
   return res.json();
 }
 
-export async function getQuality(projectId: number, filePath: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/${projectId}/quality?filePath=${encodeURIComponent(filePath)}`);
+export async function getQuality(projectId: number, filePath: string, lang = 'zh'): Promise<string> {
+  const res = await fetch(`${API_BASE}/${projectId}/quality?filePath=${encodeURIComponent(filePath)}&lang=${encodeURIComponent(lang)}`);
   if (!res.ok) throw new Error(`Failed to get quality: ${res.status}`);
   return res.text();
 }
 
-export function getExplainUrl(projectId: number, filePath: string): string {
-  return `${API_BASE}/${projectId}/explain?filePath=${encodeURIComponent(filePath)}`;
+export function getExplainUrl(projectId: number, filePath: string, lang = 'zh'): string {
+  return `${API_BASE}/${projectId}/explain?filePath=${encodeURIComponent(filePath)}&lang=${encodeURIComponent(lang)}`;
 }
 
 export async function getAst(projectId: number, filePath: string): Promise<{ type: string; name: string; startLine: number }[]> {
@@ -93,12 +93,13 @@ export async function getAst(projectId: number, filePath: string): Promise<{ typ
   return res.json();
 }
 
-export function getAskUrl(projectId: number, filePath: string, startLine: number, endLine: number, question: string): string {
+export function getAskUrl(projectId: number, filePath: string, startLine: number, endLine: number, question: string, lang = 'zh'): string {
   const params = new URLSearchParams({
     filePath,
     startLine: String(startLine),
     endLine: String(endLine),
     question,
+    lang,
   });
   return `${API_BASE}/${projectId}/ask?${params}`;
 }
@@ -167,25 +168,8 @@ export async function getCommitDiff(projectId: number, hash: string): Promise<st
   return res.json().then((d: { diff: string }) => d.diff);
 }
 
-export async function reviewCommit(projectId: number, hash: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/${projectId}/commits/${hash}/review`);
+export async function reviewCommit(projectId: number, hash: string, lang = 'zh'): Promise<string> {
+  const res = await fetch(`${API_BASE}/${projectId}/commits/${hash}/review?lang=${encodeURIComponent(lang)}`);
   if (!res.ok) throw new Error(`Failed to review: ${res.status}`);
   return res.json().then((d: { review: string }) => d.review);
-}
-
-export function askQuestion(projectId: number, filePath: string, startLine: number, endLine: number, question: string): Promise<string> {
-  return new Promise((resolve) => {
-    const url = getAskUrl(projectId, filePath, startLine, endLine, question);
-    const eventSource = new EventSource(url);
-    let result = '';
-
-    eventSource.addEventListener('content', (e) => {
-      result += e.data;
-    });
-
-    eventSource.onerror = () => {
-      eventSource.close();
-      resolve(result);
-    };
-  });
 }

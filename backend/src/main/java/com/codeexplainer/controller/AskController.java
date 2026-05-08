@@ -32,7 +32,8 @@ public class AskController {
                        @RequestParam String filePath,
                        @RequestParam int startLine,
                        @RequestParam int endLine,
-                       @RequestParam String question) {
+                       @RequestParam String question,
+                       @RequestParam(defaultValue = "zh") String lang) {
         Project project = projectRepository.findById(id).orElse(null);
         if (project == null) {
             return ResponseEntity.notFound().build();
@@ -60,7 +61,7 @@ public class AskController {
                 String ragContext = ragService.searchAndBuildContext(id, question, 3);
                 String answer = askService.ask(
                         selectedCode.toString(), startLine, endLine,
-                        filePath, question, project.getName(), fullCode, ragContext
+                        filePath, question, project.getName(), fullCode, ragContext, lang
                 );
 
                 emitter.send(SseEmitter.event()

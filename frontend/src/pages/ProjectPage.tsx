@@ -84,8 +84,9 @@ export default function ProjectPage() {
   }, []);
 
   const loadProject = useCallback(async (id: number) => {
+    const lang = localStorage.getItem('code-explainer-locale')?.startsWith('en') ? 'en' : 'zh';
     getFileTree(id).then(setTree).catch(console.error);
-    getStructure(id).then((s) => setStructure(s.analysis)).catch(console.error);
+    getStructure(id, lang).then((s) => setStructure(s.analysis)).catch(console.error);
     getDependencies(id).then(setGraphData).catch(() => {});
     getCommits(id).then(setCommits).catch(() => {});
     loadSessions(id);
@@ -147,9 +148,10 @@ export default function ProjectPage() {
 
   const handleReviewCommit = async () => {
     if (!projectId || !selectedCommit || reviewLoading) return;
+    const lang = localStorage.getItem('code-explainer-locale')?.startsWith('en') ? 'en' : 'zh';
     setReviewLoading(true);
     try {
-      const review = await reviewCommit(projectId, selectedCommit);
+      const review = await reviewCommit(projectId, selectedCommit, lang);
       setCommitReview(review);
     } catch {
       setCommitReview(t('reviewFailed'));

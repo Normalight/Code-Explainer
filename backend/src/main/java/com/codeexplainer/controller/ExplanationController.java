@@ -40,7 +40,7 @@ public class ExplanationController {
     private final ExplanationCacheService cacheService;
 
     @GetMapping(value = "/{id}/explain", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Object explain(@PathVariable Long id, @RequestParam String filePath) {
+    public Object explain(@PathVariable Long id, @RequestParam String filePath, @RequestParam(defaultValue = "zh") String lang) {
         Project project = projectRepository.findById(id).orElse(null);
         if (project == null) return ResponseEntity.notFound().build();
 
@@ -60,7 +60,7 @@ public class ExplanationController {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             try {
-                List<CodeSegment> segments = explanationService.segmentCode(code, filePath, file.getLanguage());
+                List<CodeSegment> segments = explanationService.segmentCode(code, filePath, file.getLanguage(), lang);
                 String segmentsJson = CodeSegment.toJsonArray(segments);
                 List<String> explanationList = new ArrayList<>();
 
@@ -86,7 +86,8 @@ public class ExplanationController {
                             segment.title(),
                             filePath,
                             project.getName(),
-                            "source file"
+                            "source file",
+                            lang
                     );
                     explanationList.add(explanation);
 
@@ -161,7 +162,7 @@ public class ExplanationController {
     }
 
     @GetMapping("/{id}/quality")
-    public ResponseEntity<String> quality(@PathVariable Long id, @RequestParam String filePath) {
+    public ResponseEntity<String> quality(@PathVariable Long id, @RequestParam String filePath, @RequestParam(defaultValue = "zh") String lang) {
         Project project = projectRepository.findById(id).orElse(null);
         if (project == null) return ResponseEntity.notFound().build();
 
@@ -177,7 +178,7 @@ public class ExplanationController {
             return ResponseEntity.ok(cached.get().quality());
         }
 
-        String prompt = explanationService.buildQualityAssessmentPrompt(code, filePath, file.getLanguage());
+        String prompt = explanationService.buildQualityAssessmentPrompt(code, filePath, file.getLanguage(), lang);
 
         // Save quality to cache asynchronously
         String qualityResult = prompt;
@@ -255,19 +256,23 @@ public class ExplanationController {
     public record DependencyGraph(List<Map<String, String>> nodes, List<Map<String, String>> edges) {}
 
     @GetMapping("/{id}/structure")
-    public ResponseEntity<Map<String, String>> structure(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> structure(@PathVariable Long id, @RequestParam(defaultValue = "zh") String lang) {
         Project project = projectRepository.findById(id).orElse(null);
         if (project == null) return ResponseEntity.notFound().build();
 
-        // Use cached structure analysis if available
-        if (project.getStructureAnalysis() != null && !project.getStructureAnalysis().isBlank()) {
+        // Use cached structure analysis if available and language matches
+        String cachedLang = project.getStructureAnalysisLang();
+        if (project.getStructureAnalysis() != null && !project.getStructureAnalysis().isBlank()
+                && lang.equals(cachedLang)) {
             return ResponseEntity.ok(Map.of("analysis", project.getStructureAnalysis()));
         }
 
         FileService.FileTreeNode tree = fileService.getFileTree(id);
         String fileTreeText = renderFileTree(tree, 0);
 
-        String analysis = explanationService.analyzeProjectStructure(project.getName(), fileTreeText);
+        String analysis = explanationService.analyzeProjectStructure(project.getName(), fileTreeText, lang);
+        project.setStructureAnalysis(analysis);
+        project.setStructureAnalysisLang(lang);
         project.setStructureAnalysis(analysis);
         projectRepository.save(project);
 
