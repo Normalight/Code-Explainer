@@ -94,6 +94,16 @@
 
 ## 待做
 
+<done>
+### 按需分析 + UI 重构（6项）
+1. ✅ 按需分析：打开代码文件不自动分析，显示「分析代码」按钮，点击才开始 SSE
+2. ✅ 移除项目级分析流程：去掉进度条轮询、概览页分析进度显示
+3. ✅ LLM 筛选代码段：分段 prompt 增加跳过规则（return 0、exit、pass 等）
+4. ✅ 选中代码问 AI：AskModal 改为 SSE 流式输出 + i18n
+5. ✅ 统一顶部导航：合并 sidebar 头和右侧区域头为一个 nav 栏
+6. ✅ 代码和解释区域中间可拖拽调整比例
+</done>
+
 <todo>
 ### 后端重启后 Hibernate schema 自动更新验证
 - 确认 `structure_analysis` 列已被自动添加到 projects 表

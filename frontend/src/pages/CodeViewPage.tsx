@@ -65,8 +65,6 @@ interface Props {
   onClose: () => void;
 }
 
-const HEADER_HEIGHT = 37;
-
 export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const { t } = useI18n();
   const [code, setCode] = useState('');
@@ -79,6 +77,8 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [codeTab, setCodeTab] = useState<CodeTab>('explain');
   const [astNodes, setAstNodes] = useState<AstNode[]>([]);
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.4);
 
   const codeRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef(0);
@@ -89,12 +89,14 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const isCode = isCodeFile(filePath);
   const isImage = isImageFile(filePath);
 
+  // Load file content + AST
   useEffect(() => {
     if (!projectId || !filePath) return;
     setCode('');
     setSegments([]);
     setExplanations({});
     setQuality(null);
+    setAnalyzing(false);
     activeSegmentRef.current = 0;
     getFileContent(projectId, filePath).then(setCode).catch(console.error);
     setLanguage(detectLanguage(filePath));
@@ -103,8 +105,9 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     }
   }, [projectId, filePath]);
 
-  useEffect(() => {
-    if (!projectId || !filePath || !code || !isCode) return;
+  const startAnalysis = useCallback(() => {
+    if (!projectId || !filePath || !code || !isCode || analyzing) return;
+    setAnalyzing(true);
 
     const es = new EventSource(getExplainUrl(projectId, filePath));
     es.addEventListener('segment_start', (e) => {
@@ -126,8 +129,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
         .then((text) => { try { setQuality(JSON.parse(text)); } catch {} })
         .catch(() => {});
     };
-    return () => es.close();
-  }, [projectId, filePath, code, isCode]);
+  }, [projectId, filePath, code, isCode, analyzing]);
 
   const handleTextSelection = useCallback(() => {
     const sel = window.getSelection();
@@ -187,31 +189,38 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     };
   }, [isMarkdownFile(filePath), code]);
 
-  // Full-width header (shared by left and right)
-  const header = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0, height: HEADER_HEIGHT }}>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 2 }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-      </button>
-      <span style={{ fontWeight: 600, color: 'var(--text-h)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{filePath}</span>
-      {isCode && (
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, flexShrink: 0 }}>
-          <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('explain')}</button>
-          <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('ast')}</button>
-        </div>
-      )}
-    </div>
-  );
+  // Draggable split ratio between explanation and code
+  const handleSplitResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const container = codeRef.current?.parentElement?.parentElement;
+    if (!container) return;
+    const startX = e.clientX;
+    const startRatio = splitRatio;
+    const containerWidth = container.getBoundingClientRect().width;
+    let raf = 0;
+    let targetRatio = startRatio;
+    const onMove = (ev: MouseEvent) => {
+      targetRatio = Math.max(0.15, Math.min(0.7, startRatio + (ev.clientX - startX) / containerWidth));
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setSplitRatio(targetRatio));
+    };
+    const onUp = () => {
+      cancelAnimationFrame(raf);
+      setSplitRatio(targetRatio);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [splitRatio]);
 
   // Non-code file rendering
   if (!isCode) {
     const isMd = isMarkdownFile(filePath);
 
-    // Markdown: left preview, right source with synced scroll
     if (isMd && code) {
       return (
         <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
-          {/* Left: Markdown preview */}
           <div ref={mdLeftRef} style={{ width: '50%', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
             <div style={{ padding: '20px 24px' }}>
               <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text)' }}>
@@ -219,7 +228,6 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
               </div>
             </div>
           </div>
-          {/* Right: Raw source */}
           <div ref={mdRightRef} style={{ flex: 1, overflowY: 'auto' }}>
             <SyntaxHighlighter language="markdown" style={oneDark} showLineNumbers
               customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
@@ -231,34 +239,30 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
       );
     }
 
-    // Other non-code files
     return (
       <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {header}
-          <div ref={codeRef} style={{ flex: 1, overflow: 'auto', padding: '16px 24px' }}>
-            {isImage ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: '100%' }}>
-                <img src={`/api/projects/${projectId}/files/${filePath}`} alt={filePath} style={{ maxWidth: '100%', borderRadius: 6 }} />
-              </div>
-            ) : code ? (
-              <pre style={{ margin: 0, padding: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono, monospace)' }}>
-                {code}
-              </pre>
-            ) : (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
-                <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                {t('analyzing')}
-              </div>
-            )}
-          </div>
+        <div ref={codeRef} style={{ flex: 1, overflow: 'auto', padding: '16px 24px' }}>
+          {isImage ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: '100%' }}>
+              <img src={`/api/projects/${projectId}/files/${filePath}`} alt={filePath} style={{ maxWidth: '100%', borderRadius: 6 }} />
+            </div>
+          ) : code ? (
+            <pre style={{ margin: 0, padding: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono, monospace)' }}>
+              {code}
+            </pre>
+          ) : (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
+              <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              {t('analyzing')}
+            </div>
+          )}
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
   }
 
-  // Build segment rows: each segment = one row with left explanation + right code
+  // Build segment rows
   const codeLines = useMemo(() => code.split('\n'), [code]);
 
   const segmentRows = useMemo(() => {
@@ -268,17 +272,14 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     let prevEnd = 0;
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
-      // Gap before this segment
       if (seg.startLine - 1 > prevEnd) {
         const gapCode = codeLines.slice(prevEnd, seg.startLine - 1).join('\n');
         rows.push({ type: 'gap', startLine: prevEnd + 1, endLine: seg.startLine - 1, code: gapCode });
       }
-      // Segment code
       const segCode = codeLines.slice(seg.startLine - 1, seg.endLine).join('\n');
       rows.push({ type: 'segment', startLine: seg.startLine, endLine: seg.endLine, segIndex: i, code: segCode });
       prevEnd = seg.endLine;
     }
-    // Trailing gap
     if (prevEnd < codeLines.length) {
       const gapCode = codeLines.slice(prevEnd).join('\n');
       rows.push({ type: 'gap', startLine: prevEnd + 1, endLine: codeLines.length, code: gapCode });
@@ -286,23 +287,59 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     return rows;
   }, [segments, codeLines]);
 
+  const leftWidth = `${splitRatio * 100}%`;
+
   // Code file: single scroll, per-segment rows
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', background: 'var(--bg)' }}>
-      {header}
+      {/* Sub-header: tabs + analyze button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('explain')}</button>
+        <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('ast')}</button>
+        {codeTab === 'explain' && !analyzing && segments.length === 0 && code && (
+          <button onClick={startAnalysis}
+            style={{
+              marginLeft: 8, background: 'var(--accent)', color: '#fff', border: 'none',
+              borderRadius: 4, padding: '3px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+            {t('startAnalysis')}
+          </button>
+        )}
+        {analyzing && (
+          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div className="spinner" style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            {t('analyzing')}
+          </span>
+        )}
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text)', opacity: 0.4 }}>{codeLines.length} lines</span>
+      </div>
+
       {codeTab === 'explain' ? (
         <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>
-          {segments.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
-              <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-              {t('analyzing')}
-            </div>
+          {!analyzing && segments.length === 0 ? (
+            // No analysis yet — show code only (full width)
+            code ? (
+              <SyntaxHighlighter
+                language={language} style={oneDark} showLineNumbers
+                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+              >
+                {code}
+              </SyntaxHighlighter>
+            ) : (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
+                <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                {t('analyzing')}
+              </div>
+            )
           ) : (
             segmentRows.map((row, ri) => {
               if (row.type === 'gap') {
                 return (
                   <div key={`gap-${ri}`} style={{ display: 'flex', minWidth: 0 }}>
-                    <div style={{ width: '40%', flexShrink: 0 }} />
+                    <div style={{ width: leftWidth, flexShrink: 0 }} />
+                    <div style={{ width: 3, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                       <SyntaxHighlighter
                         language={language} style={oneDark} showLineNumbers
@@ -322,7 +359,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
               return (
                 <div key={`seg-${ri}`} style={{ display: 'flex', minWidth: 0, borderBottom: `1px solid ${color}20` }}>
                   {/* Left: explanation card */}
-                  <div style={{ width: '40%', padding: '12px 16px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                  <div style={{ width: leftWidth, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                     <div style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', background: `${color}10`, flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <span style={{ fontWeight: 600, fontSize: 13, color }}>{segments[i].title}</span>
@@ -337,7 +374,17 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                       )}
                     </div>
                   </div>
-                  {/* Right: code lines for this segment */}
+                  {/* Draggable divider */}
+                  <div
+                    onMouseDown={handleSplitResize}
+                    style={{
+                      width: 3, flexShrink: 0, cursor: 'col-resize',
+                      background: 'transparent', transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  />
+                  {/* Right: code lines */}
                   <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                     <SyntaxHighlighter
                       language={language} style={oneDark} showLineNumbers wrapLines
@@ -449,17 +496,6 @@ function QualityCard({ quality }: { quality: QualityAssessment }) {
   );
 }
 
-function detectLanguage(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase() || '';
-  const map: Record<string, string> = {
-    js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
-    py: 'python', java: 'java', go: 'go', rs: 'rust', rb: 'ruby',
-    css: 'css', html: 'html', json: 'json', yaml: 'yaml', yml: 'yaml',
-    md: 'markdown', sql: 'sql', sh: 'bash', xml: 'xml',
-  };
-  return map[ext] || 'text';
-}
-
 const AST_TYPE_ICONS: Record<string, string> = {
   class: 'C', interface: 'I', struct: 'S', enum: 'E',
   function: 'ƒ', method: 'M', variable: 'V',
@@ -519,4 +555,15 @@ function AstTreeNode({ node, depth, onNodeClick }: { node: AstNode; depth: numbe
       )}
     </div>
   );
+}
+
+function detectLanguage(filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  const map: Record<string, string> = {
+    js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
+    py: 'python', java: 'java', go: 'go', rs: 'rust', rb: 'ruby',
+    css: 'css', html: 'html', json: 'json', yaml: 'yaml', yml: 'yaml',
+    md: 'markdown', sql: 'sql', sh: 'bash', xml: 'xml',
+  };
+  return map[ext] || 'text';
 }

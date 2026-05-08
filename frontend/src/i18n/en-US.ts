@@ -89,6 +89,7 @@ const enUS: Record<TranslationKey, string> = {
   failedLoadDiff: 'Failed to load diff',
   reviewFailed: 'Review failed',
   failedResponse: 'Failed to get response',
+  startAnalysis: 'Analyze Code',
 };
 
 export default enUS;

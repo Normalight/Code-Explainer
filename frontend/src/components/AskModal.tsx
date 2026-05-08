@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { askQuestion } from '../api';
+import { getAskUrl } from '../api';
+import { useI18n } from '../i18n';
 
 interface Props {
   projectId: number;
@@ -18,6 +19,7 @@ interface Message {
 }
 
 export default function AskModal({ projectId, filePath, selectedCode, startLine, endLine, onClose }: Props) {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,11 +46,30 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
     setLoading(true);
 
     try {
-      const answer = await askQuestion(projectId, filePath, startLine, endLine, question);
-      setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+      const url = getAskUrl(projectId, filePath, startLine, endLine, question);
+      const eventSource = new EventSource(url);
+      let answer = '';
+
+      eventSource.addEventListener('content', (e) => {
+        answer += e.data;
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.role === 'assistant') {
+            updated[updated.length - 1] = { ...last, content: answer };
+          } else {
+            updated.push({ role: 'assistant', content: answer });
+          }
+          return updated;
+        });
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setLoading(false);
+      };
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Failed to get response.' }]);
-    } finally {
+      setMessages((prev) => [...prev, { role: 'assistant', content: t('failedResponse') }]);
       setLoading(false);
     }
   };
@@ -90,7 +111,7 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
           justifyContent: 'space-between',
         }}>
           <span style={{ fontWeight: 600, color: 'var(--text-h)', fontSize: 14 }}>
-            Ask AI — {filePath} L{startLine}–{endLine}
+            {t('askAI')} — {filePath} L{startLine}–{endLine}
           </span>
           <button
             onClick={onClose}
@@ -129,7 +150,7 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
         }}>
           {messages.length === 0 && (
             <div style={{ textAlign: 'center', color: 'var(--text)', padding: 40, fontSize: 13 }}>
-              Ask a question about the selected code
+              {t('askAnything')}
             </div>
           )}
           {messages.map((msg, i) => (
@@ -155,7 +176,7 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
               </div>
             </div>
           ))}
-          {loading && (
+          {loading && messages[messages.length - 1]?.role !== 'assistant' && (
             <div style={{ color: 'var(--text)', fontSize: 12, textAlign: 'center' }}>
               <div className="spinner" style={{
                 width: 16, height: 16,
@@ -165,7 +186,7 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
                 animation: 'spin 0.8s linear infinite',
                 margin: '0 auto 8px',
               }} />
-              Thinking...
+              {t('thinking')}
             </div>
           )}
         </div>
@@ -181,7 +202,7 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAsk(); } }}
-            placeholder="Ask about this code..."
+            placeholder={t('askProject')}
             disabled={loading}
             style={{
               flex: 1,
@@ -209,7 +230,7 @@ export default function AskModal({ projectId, filePath, selectedCode, startLine,
               opacity: loading || !input.trim() ? 0.5 : 1,
             }}
           >
-            Send
+            {t('send')}
           </button>
         </div>
       </div>

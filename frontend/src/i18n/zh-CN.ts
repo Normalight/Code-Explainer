@@ -98,6 +98,7 @@ const zhCN = {
   failedLoadDiff: '加载 diff 失败',
   reviewFailed: '审查失败',
   failedResponse: '获取回复失败',
+  startAnalysis: '分析代码',
 } as const;
 
 export type TranslationKey = keyof typeof zhCN;
