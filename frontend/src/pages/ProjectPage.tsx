@@ -261,6 +261,7 @@ export default function ProjectPage() {
   // Upload page (no project ID)
   if (!projectId) {
     return (
+    <>
       <div style={{ maxWidth: 680, margin: '40px auto', padding: '0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
           <h1 style={{ fontSize: 28, textAlign: 'center' }}>{t('appTitle')}</h1>
@@ -348,8 +349,10 @@ export default function ProjectPage() {
           </div>
         )}
       </div>
-    );
-  }
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+    </>
+  );
+}
 
   // Unified top navigation bar
   const navBar = (

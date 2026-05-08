@@ -27,22 +27,23 @@ function FileNode({ data }: NodeProps) {
   return (
     <div
       style={{
-        padding: '8px 14px',
-        borderRadius: 6,
+        padding: '10px 16px',
+        borderRadius: 8,
         background: 'var(--code-bg)',
-        border: `1px solid ${color}40`,
-        fontSize: 12,
-        minWidth: 100,
+        border: `1.5px solid ${color}60`,
+        fontSize: 13,
+        minWidth: 140,
         cursor: 'pointer',
+        boxShadow: `0 2px 8px ${color}15`,
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: color, width: 6, height: 6 }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
-        <span style={{ color: 'var(--text-h)', fontWeight: 500 }}>{label}</span>
+      <Handle type="target" position={Position.Left} style={{ background: color, width: 7, height: 7, opacity: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
+        <span style={{ color: 'var(--text-h)', fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
       </div>
-      {lang && <div style={{ fontSize: 10, color: 'var(--text)', marginTop: 2 }}>{lang}</div>}
-      <Handle type="source" position={Position.Right} style={{ background: color, width: 6, height: 6 }} />
+      {lang && <div style={{ fontSize: 10, color: 'var(--text)', marginTop: 3, opacity: 0.6 }}>{lang}</div>}
+      <Handle type="source" position={Position.Right} style={{ background: color, width: 7, height: 7, opacity: 0 }} />
     </div>
   );
 }
@@ -74,7 +75,7 @@ export default function DependencyGraphFlow({ nodes: rawNodes, edges: rawEdges, 
       return {
         id: n.id,
         type: 'fileNode',
-        position: { x: colIdx * 280, y: rowInDir * 80 },
+        position: { x: colIdx * 320, y: rowInDir * 90 },
         data: { label: n.id.split('/').pop() || n.id, language: n.language },
       };
     });
@@ -108,7 +109,14 @@ export default function DependencyGraphFlow({ nodes: rawNodes, edges: rawEdges, 
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ minZoom: 0.3, maxZoom: 1.5, padding: 0.15 }}
+        connectOnClick={false}
+        connectionLineStyle={{ stroke: 'transparent' }}
+        defaultEdgeOptions={{ type: 'smoothstep' }}
         proOptions={{ hideAttribution: true }}
+        nodesConnectable={false}
+        nodesDraggable={true}
+        panOnDrag={true}
       >
         <Background color="var(--border)" gap={20} />
         <Controls style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: 6 }} />
