@@ -112,7 +112,9 @@ public class TreeSitterAstParser {
                  "struct_item", "enum_declaration",
                  "impl_item", "trait",
                  "type_declaration",
-                 "lexical_declaration", "variable_declaration" -> true;
+                 "lexical_declaration", "variable_declaration",
+                 "element", "script_element", "style_element",
+                 "pair" -> true;
             default -> false;
         };
     }
@@ -128,8 +130,10 @@ public class TreeSitterAstParser {
             case "enum_declaration" -> "enum";
             case "impl_item" -> "impl";
             case "trait" -> "trait";
-            case "type_declaration" -> "type"; // refined in overload below
+            case "type_declaration" -> "type";
             case "lexical_declaration", "variable_declaration" -> "variable";
+            case "element", "script_element", "style_element" -> "element";
+            case "pair" -> "property";
             default -> type;
         };
     }
@@ -187,6 +191,16 @@ public class TreeSitterAstParser {
                 }
             }
             return findChildText(node, source, "identifier");
+        }
+
+        // HTML elements: extract tag name
+        if (type.equals("element") || type.equals("script_element") || type.equals("style_element")) {
+            return findChildText(node, source, "tag_name");
+        }
+
+        // JSON pair: extract the key string
+        if (type.equals("pair")) {
+            return findChildText(node, source, "string");
         }
 
         return null;

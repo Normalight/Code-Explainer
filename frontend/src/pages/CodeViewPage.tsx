@@ -23,7 +23,7 @@ const SEGMENT_COLORS = [
 const AST_COLORS: Record<string, string> = {
   function: '#22c55e', method: '#22c55e',
   class: '#3b82f6', struct: '#3b82f6', interface: '#8b5cf6',
-  variable: '#f59e0b',
+  variable: '#f59e0b', element: '#f97316', property: '#14b8a6',
 };
 
 const AST_SUPPORTED_EXTENSIONS = new Set([
@@ -521,6 +521,7 @@ const AST_TYPE_ICONS: Record<string, string> = {
   class: 'C', interface: 'I', struct: 'S', enum: 'E',
   function: 'ƒ', method: 'M', variable: 'V',
   trait: 'T', impl: '▶', type: 'T',
+  element: '<>', property: ':',
 };
 
 function AstTreeView({ nodes, onNodeClick }: { nodes: AstNode[]; onNodeClick: (startLine: number, endLine: number) => void }) {
