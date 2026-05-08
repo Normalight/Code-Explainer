@@ -1,0 +1,108 @@
+<h2>P1 核心界面设计</h2>
+<p class="subtitle">两个主要页面：项目概览 和 代码解释视图</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">页面 1：项目概览</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="background:#1a1a2e;padding:8px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #333;">
+        <span style="color:#58a6ff;font-weight:bold;">📁 Code-Explainer</span>
+        <span style="color:#8b949e;font-size:12px;">my-project.zip · 上传于 2026-05-08</span>
+        <span style="margin-left:auto;color:#8b949e;font-size:12px;">🔄 重新上传</span>
+      </div>
+      <div style="display:flex;min-height:300px;">
+        <div style="width:220px;border-right:1px solid #333;padding:8px;font-size:13px;">
+          <div style="color:#58a6ff;margin-bottom:4px;">📂 src/</div>
+          <div style="padding-left:16px;color:#c9d1d9;">
+            <div>📄 main.py</div>
+            <div>📄 utils.py</div>
+            <div style="color:#58a6ff;">📂 models/</div>
+            <div style="padding-left:16px;color:#c9d1d9;">
+              <div>📄 user.py</div>
+              <div>📄 post.py</div>
+            </div>
+          </div>
+          <div style="color:#58a6ff;margin-top:4px;">📂 tests/</div>
+          <div style="color:#c9d1d9;">📄 README.md</div>
+          <div style="color:#c9d1d9;">📄 requirements.txt</div>
+        </div>
+        <div style="flex:1;padding:16px;">
+          <div style="color:#58a6ff;font-size:14px;font-weight:bold;margin-bottom:12px;">🏗️ 项目结构分析</div>
+          <div style="background:#161b22;border:1px solid #333;border-radius:6px;padding:12px;margin-bottom:12px;">
+            <div style="color:#7ee787;font-size:12px;margin-bottom:6px;">AI 概览</div>
+            <div style="color:#c9d1d9;font-size:13px;line-height:1.6;">
+              这是一个基于 Flask 的博客系统后端。项目采用 MVC 架构：<br>
+              • <b>models/</b> — 数据模型层，定义 User、Post 实体<br>
+              • <b>src/</b> — 核心业务逻辑，包含路由和工具函数<br>
+              • <b>tests/</b> — 单元测试<br>
+              入口文件为 main.py，使用 SQLAlchemy ORM。
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#161b22;border:1px solid #333;border-radius:6px;padding:10px;">
+              <div style="color:#d2a8ff;font-size:11px;">语言分布</div>
+              <div style="margin-top:6px;">
+                <div style="background:#1f6feb;border-radius:3px;height:8px;width:70%;"></div>
+                <div style="color:#8b949e;font-size:11px;margin-top:2px;">Python 70% · 12 文件</div>
+              </div>
+            </div>
+            <div style="background:#161b22;border:1px solid #333;border-radius:6px;padding:10px;">
+              <div style="color:#d2a8ff;font-size:11px;">项目统计</div>
+              <div style="color:#8b949e;font-size:11px;margin-top:6px;">15 文件 · 1,234 行代码</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">页面 2：代码解释视图（点击文件后）</div>
+    <div class="mockup-body" style="padding:0;overflow:hidden;">
+      <div style="background:#1a1a2e;padding:6px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #333;font-size:12px;">
+        <span style="color:#8b949e;">← 返回</span>
+        <span style="color:#58a6ff;">📄 src/main.py</span>
+        <span style="margin-left:auto;color:#8b949e;">💬 追问 · 📋 复制解释</span>
+      </div>
+      <div style="display:flex;min-height:300px;">
+        <div style="flex:1;border-right:1px solid #333;padding:12px;overflow:auto;">
+          <div style="color:#7ee787;font-size:11px;margin-bottom:8px;">🤖 AI 解释</div>
+          <div style="background:#0d1117;border:1px solid #238636;border-radius:6px;padding:8px;margin-bottom:8px;">
+            <div style="color:#58a6ff;font-size:11px;margin-bottom:4px;">第 1-5 行 · 导入与初始化</div>
+            <div style="color:#c9d1d9;font-size:12px;line-height:1.5;">
+              导入了 Flask 框架和 SQLAlchemy ORM。<code style="background:#333;padding:1px 4px;border-radius:3px;">app</code> 是 Flask 应用实例，<code style="background:#333;padding:1px 4px;border-radius:3px;">db</code> 是数据库连接对象。
+            </div>
+          </div>
+          <div style="background:#0d1117;border:1px solid #238636;border-radius:6px;padding:8px;margin-bottom:8px;">
+            <div style="color:#58a6ff;font-size:11px;margin-bottom:4px;">第 7-15 行 · 路由定义</div>
+            <div style="color:#c9d1d9;font-size:12px;line-height:1.5;">
+              定义了首页路由 <code style="background:#333;padding:1px 4px;border-radius:3px;">/</code>，查询数据库中所有文章并按时间倒序排列，渲染模板返回。
+            </div>
+          </div>
+          <div style="background:#0d1117;border:1px solid #238636;border-radius:6px;padding:8px;">
+            <div style="color:#58a6ff;font-size:11px;margin-bottom:4px;">第 17-20 行 · 启动入口</div>
+            <div style="color:#c9d1d9;font-size:12px;line-height:1.5;">
+              标准的 Flask 启动模式，<code style="background:#333;padding:1px 4px;border-radius:3px;">debug=True</code> 启用热重载。
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;padding:0;overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:12px;">
+            <tr style="background:#161b22;"><td style="color:#484f58;padding:2px 8px;width:35px;text-align:right;">1</td><td style="color:#ff7b72;">from</td><td style="color:#c9d1d9;"> flask </td><td style="color:#ff7b72;">import</td><td style="color:#c9d1d9;"> Flask</td></tr>
+            <tr><td style="color:#484f58;padding:2px 8px;text-align:right;">2</td><td style="color:#ff7b72;">from</td><td style="color:#c9d1d9;"> flask_sqlalchemy </td><td style="color:#ff7b72;">import</td><td style="color:#c9d1d9;"> SQLAlchemy</td></tr>
+            <tr style="background:#161b22;"><td style="color:#484f58;padding:2px 8px;text-align:right;">3</td><td colspan="4" style="color:#c9d1d9;"></td></tr>
+            <tr><td style="color:#484f58;padding:2px 8px;text-align:right;">4</td><td style="color:#79c0ff;">app</td><td style="color:#c9d1d9;"> = Flask(__name__)</td></tr>
+            <tr style="background:#161b22;"><td style="color:#484f58;padding:2px 8px;text-align:right;">5</td><td style="color:#79c0ff;">db</td><td style="color:#c9d1d9;"> = SQLAlchemy(app)</td></tr>
+            <tr><td style="color:#484f58;padding:2px 8px;text-align:right;">6</td><td colspan="4" style="color:#c9d1d9;"></td></tr>
+            <tr style="background:#0d1117;border-left:2px solid #238636;"><td style="color:#484f58;padding:2px 8px;text-align:right;">7</td><td style="color:#d2a8ff;">@app.route</td><td style="color:#c9d1d9;">(</td><td style="color:#a5d6ff;">'/'</td><td style="color:#c9d1d9;">)</td></tr>
+            <tr style="background:#0d1117;border-left:2px solid #238636;"><td style="color:#484f58;padding:2px 8px;text-align:right;">8</td><td style="color:#ff7b72;">def</td><td style="color:#d2a8ff;"> index</td><td style="color:#c9d1d9;">():</td></tr>
+            <tr style="background:#0d1117;border-left:2px solid #238636;"><td style="color:#484f58;padding:2px 8px;text-align:right;">9</td><td colspan="4" style="color:#c9d1d9;">&nbsp;&nbsp;posts = Post.query.<wbr>order_by(Post.id.desc()).all()</td></tr>
+            <tr style="background:#0d1117;border-left:2px solid #238636;"><td style="color:#484f58;padding:2px 8px;text-align:right;">10</td><td colspan="4" style="color:#c9d1d9;">&nbsp;&nbsp;return render_template(<wbr>'index.html', posts=posts)</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center;color:#8b949e;margin-top:12px;font-size:13px;">左侧：项目概览页（文件树 + AI 结构分析）｜ 右侧：代码解释页（左解释 · 右代码）</p>

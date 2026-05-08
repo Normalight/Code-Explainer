@@ -1,0 +1,228 @@
+<h2>首页（项目概览）完整 Mockup</h2>
+<p class="subtitle">文件树 + AI 结构分析 + 质量统计 + 进度 + 项目对话</p>
+
+<div class="mockup">
+  <div class="mockup-header">项目概览页</div>
+  <div class="mockup-body" style="padding:0;overflow:hidden;">
+    <!-- 顶部栏 -->
+    <div style="background:#0d1117;padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #21262d;font-size:13px;">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="#58a6ff"><path d="M2 1.75C2 .784 2.784 0 3.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+      <span style="color:#58a6ff;font-weight:600;font-size:14px;">Code Explainer</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <span style="color:#8b949e;font-size:11px;">🔄 重新上传</span>
+        <span style="color:#8b949e;font-size:11px;">📋 导出报告</span>
+      </span>
+    </div>
+
+    <!-- 项目名 + 进度条 -->
+    <div style="background:#161b22;padding:10px 16px;border-bottom:1px solid #21262d;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:#e6edf3;font-weight:600;">📁 my-flask-blog</span>
+          <span style="color:#484f58;font-size:11px;">上传于 2026-05-08</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="color:#8b949e;font-size:11px;">分析进度</span>
+          <span style="color:#58a6ff;font-size:11px;font-weight:500;">12/20</span>
+        </div>
+      </div>
+      <div style="background:#21262d;border-radius:3px;height:6px;overflow:hidden;">
+        <div style="background:linear-gradient(90deg,#1f6feb,#58a6ff);height:100%;width:60%;border-radius:3px;"></div>
+      </div>
+      <div style="color:#484f58;font-size:10px;margin-top:4px;">正在分析：src/utils.py</div>
+    </div>
+
+    <div style="display:flex;min-height:480px;">
+      <!-- 左侧：文件树 -->
+      <div style="width:220px;border-right:1px solid #21262d;overflow:auto;font-size:12px;">
+        <div style="padding:8px 12px;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="#8b949e"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"/></svg>
+          <span style="color:#8b949e;font-size:11px;">文件</span>
+          <span style="color:#8b949e;font-size:11px;margin-left:auto;">关系图</span>
+        </div>
+        <div style="padding:6px 0;">
+          <!-- 目录 -->
+          <div style="padding:3px 12px;display:flex;align-items:center;gap:4px;color:#58a6ff;">
+            <span>▾</span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#7ee787"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"/></svg>
+            <span>src/</span>
+          </div>
+          <!-- 已分析文件 ✓ -->
+          <div style="padding:3px 12px 3px 32px;display:flex;align-items:center;gap:4px;color:#c9d1d9;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#8b949e"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <span>main.py</span>
+            <span style="color:#7ee787;font-size:9px;margin-left:auto;">✓ A</span>
+          </div>
+          <div style="padding:3px 12px 3px 32px;display:flex;align-items:center;gap:4px;color:#c9d1d9;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#8b949e"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <span>utils.py</span>
+            <span style="color:#58a6ff;font-size:9px;margin-left:auto;">⟳</span>
+          </div>
+          <div style="padding:3px 12px;display:flex;align-items:center;gap:4px;color:#58a6ff;">
+            <span>▾</span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#7ee787"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"/></svg>
+            <span>models/</span>
+          </div>
+          <div style="padding:3px 12px 3px 32px;display:flex;align-items:center;gap:4px;color:#c9d1d9;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#8b949e"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <span>user.py</span>
+            <span style="color:#7ee787;font-size:9px;margin-left:auto;">✓ B</span>
+          </div>
+          <div style="padding:3px 12px 3px 32px;display:flex;align-items:center;gap:4px;color:#c9d1d9;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#8b949e"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <span>post.py</span>
+            <span style="color:#7ee787;font-size:9px;margin-left:auto;">✓ B</span>
+          </div>
+          <div style="padding:3px 12px;display:flex;align-items:center;gap:4px;color:#58a6ff;">
+            <span>▸</span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#7ee787"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"/></svg>
+            <span>templates/</span>
+          </div>
+          <div style="padding:3px 12px 3px 16px;display:flex;align-items:center;gap:4px;color:#c9d1d9;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#8b949e"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <span>README.md</span>
+            <span style="color:#484f58;font-size:9px;margin-left:auto;">···</span>
+          </div>
+          <div style="padding:3px 12px 3px 16px;display:flex;align-items:center;gap:4px;color:#c9d1d9;cursor:pointer;">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#8b949e"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <span>requirements.txt</span>
+            <span style="color:#7ee787;font-size:9px;margin-left:auto;">✓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧上方：AI 结构分析 + 质量 -->
+      <div style="flex:1;overflow:auto;">
+        <!-- Tab 切换 -->
+        <div style="padding:6px 16px;border-bottom:1px solid #21262d;display:flex;gap:0;">
+          <div style="color:#e6edf3;font-size:12px;padding:4px 12px;border-bottom:2px solid #58a6ff;cursor:pointer;">概览</div>
+          <div style="color:#8b949e;font-size:12px;padding:4px 12px;cursor:pointer;">关系图</div>
+          <div style="color:#8b949e;font-size:12px;padding:4px 12px;cursor:pointer;">
+            💬 AI 对话
+          </div>
+        </div>
+
+        <!-- 概览内容 -->
+        <div style="padding:14px 16px;">
+          <!-- AI 概览 -->
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:12px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#7ee787"><path d="M11.96 3.56a.75.75 0 00-1.42-.12l-3.25 8.5a.75.75 0 001.42.12l3.25-8.5z"/></svg>
+              <span style="color:#7ee787;font-size:12px;font-weight:500;">AI 项目分析</span>
+            </div>
+            <div style="color:#c9d1d9;font-size:12px;line-height:1.6;margin-bottom:8px;">
+              这是一个基于 Flask 的博客系统后端。项目采用 MVC 架构，使用 SQLAlchemy ORM 进行数据持久化。入口文件为 <code style="background:#0d1117;padding:1px 4px;border-radius:2px;">src/main.py</code>，定义了首页和文章详情两个路由。
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span style="background:#1f6feb22;color:#58a6ff;font-size:10px;padding:2px 8px;border-radius:10px;">Web 应用</span>
+              <span style="background:#a371f722;color:#d2a8ff;font-size:10px;padding:2px 8px;border-radius:10px;">MVC</span>
+              <span style="background:#23863622;color:#7ee787;font-size:10px;padding:2px 8px;border-radius:10px;">Flask</span>
+            </div>
+          </div>
+
+          <!-- 统计卡片行 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+            <!-- 质量评分 -->
+            <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;text-align:center;">
+              <div style="color:#484f58;font-size:10px;margin-bottom:4px;">总体质量</div>
+              <div style="color:#7ee787;font-size:22px;font-weight:700;">A</div>
+              <div style="display:flex;gap:2px;justify-content:center;margin-top:4px;">
+                <div style="width:4px;height:12px;background:#7ee787;border-radius:1px;"></div>
+                <div style="width:4px;height:12px;background:#7ee787;border-radius:1px;"></div>
+                <div style="width:4px;height:12px;background:#58a6ff;border-radius:1px;"></div>
+                <div style="width:4px;height:12px;background:#58a6ff;border-radius:1px;"></div>
+              </div>
+            </div>
+            <!-- 文件数 -->
+            <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;text-align:center;">
+              <div style="color:#484f58;font-size:10px;margin-bottom:4px;">文件</div>
+              <div style="color:#e6edf3;font-size:22px;font-weight:700;">20</div>
+              <div style="color:#484f58;font-size:10px;margin-top:4px;">1,234 行代码</div>
+            </div>
+            <!-- 问题统计 -->
+            <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;text-align:center;">
+              <div style="color:#484f58;font-size:10px;margin-bottom:4px;">问题</div>
+              <div style="display:flex;justify-content:center;gap:8px;margin-top:6px;">
+                <div><span style="color:#ff7b72;font-size:14px;font-weight:600;">2</span><div style="color:#484f58;font-size:9px;">严重</div></div>
+                <div><span style="color:#d29922;font-size:14px;font-weight:600;">5</span><div style="color:#484f58;font-size:9px;">警告</div></div>
+                <div><span style="color:#58a6ff;font-size:14px;font-weight:600;">8</span><div style="color:#484f58;font-size:9px;">建议</div></div>
+              </div>
+            </div>
+            <!-- 语言 -->
+            <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;text-align:center;">
+              <div style="color:#484f58;font-size:10px;margin-bottom:4px;">语言</div>
+              <div style="color:#e6edf3;font-size:12px;line-height:1.6;">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <div style="width:40px;height:4px;background:#3572A5;border-radius:2px;"></div>
+                  <span style="color:#8b949e;font-size:10px;">Python 70%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                  <div style="width:15px;height:4px;background:#e34c26;border-radius:2px;"></div>
+                  <span style="color:#8b949e;font-size:10px;">HTML 25%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分项评分 -->
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:12px;">
+            <div style="color:#8b949e;font-size:11px;margin-bottom:8px;">质量分项</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;font-size:11px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#c9d1d9;">可读性</span><span style="color:#7ee787;">4.5</span></div>
+                <div style="background:#21262d;border-radius:2px;height:4px;"><div style="background:#7ee787;height:100%;width:90%;border-radius:2px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#c9d1d9;">复杂度</span><span style="color:#58a6ff;">3.8</span></div>
+                <div style="background:#21262d;border-radius:2px;height:4px;"><div style="background:#58a6ff;height:100%;width:76%;border-radius:2px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#c9d1d9;">规范性</span><span style="color:#7ee787;">4.2</span></div>
+                <div style="background:#21262d;border-radius:2px;height:4px;"><div style="background:#7ee787;height:100%;width:84%;border-radius:2px;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:#c9d1d9;">安全性</span><span style="color:#d29922;">3.2</span></div>
+                <div style="background:#21262d;border-radius:2px;height:4px;"><div style="background:#d29922;height:100%;width:64%;border-radius:2px;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 问题列表 Top 5 -->
+          <div style="background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="color:#8b949e;font-size:11px;">问题列表</span>
+              <span style="color:#484f58;font-size:10px;">查看全部 →</span>
+            </div>
+            <div style="font-size:11px;line-height:1.8;">
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;background:rgba(248,81,73,0.06);">
+                <span style="color:#ff7b72;font-size:9px;">🔴</span>
+                <span style="color:#c9d1d9;">SQL 注入风险</span>
+                <span style="color:#484f58;font-size:10px;margin-left:auto;">src/main.py:15</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;">
+                <span style="color:#ff7b72;font-size:9px;">🔴</span>
+                <span style="color:#c9d1d9;">硬编码密钥</span>
+                <span style="color:#484f58;font-size:10px;margin-left:auto;">src/config.py:3</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;">
+                <span style="color:#d29922;font-size:9px;">🟡</span>
+                <span style="color:#c9d1d9;">未处理的异常</span>
+                <span style="color:#484f58;font-size:10px;margin-left:auto;">src/main.py:9</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;">
+                <span style="color:#d29922;font-size:9px;">🟡</span>
+                <span style="color:#c9d1d9;">缺少输入验证</span>
+                <span style="color:#484f58;font-size:10px;margin-left:auto;">src/main.py:22</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:3px;">
+                <span style="color:#58a6ff;font-size:9px;">🔵</span>
+                <span style="color:#c9d1d9;">建议添加类型注解</span>
+                <span style="color:#484f58;font-size:10px;margin-left:auto;">models/user.py:8</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

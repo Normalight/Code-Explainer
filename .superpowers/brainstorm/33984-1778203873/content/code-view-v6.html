@@ -1,0 +1,132 @@
+<h2>代码解释视图 · V6 — 右侧加空白对齐</h2>
+<p class="subtitle">右侧代码组上方添加空白，与左侧解释块顶部严格对齐</p>
+
+<div class="mockup">
+  <div class="mockup-header">代码解释视图 — 右侧补空白对齐</div>
+  <div class="mockup-body" style="padding:0;overflow:hidden;">
+    <div style="background:#0d1117;padding:6px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #21262d;font-size:13px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="#8b949e"><path d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"/></svg>
+      <span style="color:#8b949e;">src / </span><span style="color:#c9d1d9;">main.py</span>
+    </div>
+
+    <div style="display:flex;min-height:420px;">
+      <!-- 左侧：AI 解释 -->
+      <div style="flex:1;border-right:1px solid #21262d;overflow:auto;">
+        <div style="padding:8px 14px;border-bottom:1px solid #21262d;">
+          <span style="color:#e6edf3;font-size:12px;font-weight:600;">AI 解释</span>
+        </div>
+
+        <div style="padding:0 8px;font-size:12px;">
+          <!-- 块1: L1-2 -->
+          <div style="padding:8px 10px;background:#0d1117;border:1px solid #1f6feb44;border-radius:6px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="background:#1f6feb22;color:#58a6ff;font-size:10px;padding:2px 6px;border-radius:3px;">L1-2</span>
+              <span style="color:#e6edf3;font-size:12px;font-weight:500;">导入依赖</span>
+            </div>
+            <div style="color:#8b949e;font-size:11px;line-height:1.5;">导入 Flask 框架和 SQLAlchemy ORM</div>
+          </div>
+          <!-- 间隙 -->
+          <div style="height:12px;"></div>
+          <!-- 块2: L4-5 -->
+          <div style="padding:8px 10px;background:#0d1117;border:1px solid #1f6feb44;border-radius:6px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="background:#1f6feb22;color:#58a6ff;font-size:10px;padding:2px 6px;border-radius:3px;">L4-5</span>
+              <span style="color:#e6edf3;font-size:12px;font-weight:500;">应用初始化</span>
+            </div>
+            <div style="color:#8b949e;font-size:11px;line-height:1.5;">创建 Flask 实例。<code style="background:#161b22;padding:0 3px;border-radius:2px;">__name__</code> 用于定位资源目录。初始化数据库连接。</div>
+          </div>
+          <!-- 间隙 -->
+          <div style="height:12px;"></div>
+          <!-- 块3: L7-14 -->
+          <div style="padding:8px 10px;background:#0d1117;border:1px solid #a371f744;border-radius:6px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="background:#a371f722;color:#d2a8ff;font-size:10px;padding:2px 6px;border-radius:3px;">L7-14</span>
+              <span style="color:#e6edf3;font-size:12px;font-weight:500;">路由定义</span>
+            </div>
+            <div style="color:#8b949e;font-size:11px;line-height:1.5;">
+              定义了两个路由：<br>
+              • <code style="background:#161b22;padding:0 3px;border-radius:2px;">GET /</code> — 首页，查询所有文章按时间倒序<br>
+              • <code style="background:#161b22;padding:0 3px;border-radius:2px;">GET /post/&lt;id&gt;</code> — 文章详情页<br>
+              使用 SQLAlchemy ORM 进行数据库查询
+            </div>
+          </div>
+          <!-- 间隙 -->
+          <div style="height:12px;"></div>
+          <!-- 块4: L17-18 -->
+          <div style="padding:8px 10px;background:#0d1117;border:1px solid #23863644;border-radius:6px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span style="background:#23863622;color:#7ee787;font-size:10px;padding:2px 6px;border-radius:3px;">L17-18</span>
+              <span style="color:#e6edf3;font-size:12px;font-weight:500;">启动入口</span>
+            </div>
+            <div style="color:#8b949e;font-size:11px;line-height:1.5;">标准 Flask 启动，debug 模式支持热重载</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：代码（带额外空白对齐左侧） -->
+      <div style="flex:1;overflow:auto;">
+        <div style="padding:8px 14px;border-bottom:1px solid #21262d;">
+          <span style="color:#e6edf3;font-size:12px;font-weight:600;">代码</span>
+        </div>
+
+        <div style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:12px;line-height:24px;">
+          <!-- 组1: L1-2，不加额外空白（第一组顶部自然对齐） -->
+          <div style="padding:0 14px;border-left:3px solid #1f6feb;background:rgba(31,111,235,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">1</span><span style="color:#ff7b72;">from</span> <span style="color:#c9d1d9;">flask </span><span style="color:#ff7b72;">import</span> <span style="color:#c9d1d9;">Flask</span></div>
+          <div style="padding:0 14px;border-left:3px solid #1f6feb;background:rgba(31,111,235,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">2</span><span style="color:#ff7b72;">from</span> <span style="color:#c9d1d9;">flask_sqlalchemy </span><span style="color:#ff7b72;">import</span> <span style="color:#c9d1d9;">SQLAlchemy</span></div>
+          <!-- L3 空行 -->
+          <div style="padding:0 14px;"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">3</span></div>
+
+          <!-- 额外空白：补偿左侧块1底部padding + 间隙 + 块2顶部padding -->
+          <div style="height:14px;"></div>
+
+          <!-- 组2: L4-5 -->
+          <div style="padding:0 14px;border-left:3px solid #1f6feb;background:rgba(31,111,235,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">4</span><span style="color:#79c0ff;">app</span> <span style="color:#ff7b72;">=</span> <span style="color:#79c0ff;">Flask</span><span style="color:#c9d1d9;">(</span><span style="color:#79c0ff;">__name__</span><span style="color:#c9d1d9;">)</span></div>
+          <div style="padding:0 14px;border-left:3px solid #1f6feb;background:rgba(31,111,235,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">5</span><span style="color:#79c0ff;">db</span> <span style="color:#ff7b72;">=</span> <span style="color:#79c0ff;">SQLAlchemy</span><span style="color:#c9d1d9;">(app)</span></div>
+          <!-- L6 空行 -->
+          <div style="padding:0 14px;"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">6</span></div>
+
+          <!-- 额外空白 -->
+          <div style="height:14px;"></div>
+
+          <!-- 组3: L7-14，L7 带 hover -->
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.12);outline:1px solid rgba(163,113,247,0.3);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">7</span><span style="color:#d2a8ff;">@app.route</span><span style="color:#c9d1d9;">(</span><span style="color:#a5d6ff;">'/'</span><span style="color:#c9d1d9;">)</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">8</span><span style="color:#ff7b72;">def</span> <span style="color:#d2a8ff;">index</span><span style="color:#c9d1d9;">():</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">9</span><span style="color:#c9d1d9;">&nbsp;&nbsp;posts = Post.query.order_by(</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">10</span><span style="color:#c9d1d9;">&nbsp;&nbsp;&nbsp;&nbsp;Post.id.desc()).all()</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">11</span><span style="color:#c9d1d9;">&nbsp;&nbsp;return render_template(</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">12</span><span style="color:#c9d1d9;">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#a5d6ff;">'index.html'</span><span style="color:#c9d1d9;">, posts=posts)</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">13</span></div>
+          <div style="padding:0 14px;border-left:3px solid #a371f7;background:rgba(163,113,247,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">14</span><span style="color:#d2a8ff;">@app.route</span><span style="color:#c9d1d9;">(</span><span style="color:#a5d6ff;">'/post/&lt;int:id&gt;'</span><span style="color:#c9d1d9;">)</span></div>
+          <!-- L15-16 无色 -->
+          <div style="padding:0 14px;"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">15</span><span style="color:#ff7b72;">def</span> <span style="color:#d2a8ff;">show_post</span><span style="color:#c9d1d9;">(id):</span></div>
+          <div style="padding:0 14px;"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">16</span><span style="color:#c9d1d9;">&nbsp;&nbsp;post = Post.query.get_or_404(id)</span></div>
+
+          <!-- 额外空白 -->
+          <div style="height:14px;"></div>
+
+          <!-- 组4: L17-18 -->
+          <div style="padding:0 14px;border-left:3px solid #238636;background:rgba(35,134,54,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">17</span><span style="color:#ff7b72;">if</span> <span style="color:#79c0ff;">__name__</span> <span style="color:#ff7b72;">==</span> <span style="color:#a5d6ff;">'__main__'</span><span style="color:#c9d1d9;">:</span></div>
+          <div style="padding:0 14px;border-left:3px solid #238636;background:rgba(35,134,54,0.08);"><span style="color:#484f58;display:inline-block;width:28px;text-align:right;margin-right:12px;">18</span><span style="color:#c9d1d9;">&nbsp;&nbsp;app.run(debug=</span><span style="color:#79c0ff;">True</span><span style="color:#c9d1d9;">)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;padding:12px;background:#161b22;border:1px solid #21262d;border-radius:6px;">
+  <div style="color:#7ee787;font-size:12px;margin-bottom:8px;">V6 对齐策略</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;">
+    <div>
+      <div style="color:#58a6ff;margin-bottom:4px;">📐 对齐方式</div>
+      <div style="color:#8b949e;">右侧代码组上方插入额外空白<br>空白高度 = 左侧卡片间距差值<br>实际高度由 JS 动态计算</div>
+    </div>
+    <div>
+      <div style="color:#d2a8ff;margin-bottom:4px;">📦 左侧不变</div>
+      <div style="color:#8b949e;">保持块状圆角卡片<br>最小间距 12px<br>内容自然撑高</div>
+    </div>
+    <div>
+      <div style="color:#7ee787;margin-bottom:4px;">🖱️ 右侧不变</div>
+      <div style="color:#8b949e;">代码行高 24px 不变<br>行数不变，仅加空白<br>hover 高亮 + 弹出工具栏</div>
+    </div>
+  </div>
+</div>

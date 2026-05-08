@@ -1,0 +1,32 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  datasource:
+    url: jdbc:mysql://localhost:3306/code_explainer?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  ai:
+    openai:
+      base-url: ${AI_API_BASE_URL:https://api.openai.com}
+      api-key: ${AI_API_KEY:your-api-key}
+      chat:
+        options:
+          model: ${AI_MODEL:gpt-4o}
+          temperature: 0.3
+
+app:
+  storage:
+    upload-dir: ${UPLOAD_DIR:./uploads}
+  chroma:
+    url: ${CHROMA_URL:http://localhost:8000}

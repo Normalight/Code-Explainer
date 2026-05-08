@@ -1,0 +1,130 @@
+<h2>代码关系图 · 优化版</h2>
+<p class="subtitle">文件夹分组 · 连接线绑定节点边缘</p>
+
+<div class="mockup">
+  <div class="mockup-header">功能 3：代码关系图</div>
+  <div class="mockup-body" style="padding:0;overflow:hidden;">
+    <div style="background:#0d1117;padding:6px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #21262d;font-size:13px;">
+      <span style="color:#e6edf3;font-weight:bold;">📁 my-project</span>
+      <span style="margin-left:auto;display:flex;gap:8px;">
+        <span style="color:#8b949e;font-size:11px;padding:2px 8px;border:1px solid #30363d;border-radius:3px;cursor:pointer;">文件</span>
+        <span style="color:#e6edf3;font-size:11px;padding:2px 8px;background:#1f6feb22;border-radius:3px;border:1px solid #1f6feb;cursor:pointer;">关系图</span>
+      </span>
+    </div>
+
+    <!-- 关系图 -->
+    <div style="padding:24px 32px;background:#0d1117;min-height:340px;position:relative;">
+
+      <!-- SVG 连线层（最底层） -->
+      <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;">
+        <defs>
+          <marker id="arr-solid" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#58a6ff"/></marker>
+          <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#a371f7"/></marker>
+          <marker id="arr-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#238636"/></marker>
+          <marker id="arr-dashed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#484f58"/></marker>
+        </defs>
+
+        <!-- main.py → models/ 文件夹 -->
+        <path d="M 220,68 C 220,90 130,90 130,108" stroke="#58a6ff" stroke-width="1.5" fill="none" marker-end="url(#arr-solid)"/>
+        <!-- main.py → utils.py -->
+        <path d="M 260,68 C 260,90 370,90 370,108" stroke="#238636" stroke-width="1.5" fill="none" marker-end="url(#arr-green)"/>
+
+        <!-- models/ → user.py -->
+        <path d="M 110,148 C 110,160 80,160 80,178" stroke="#a371f7" stroke-width="1.2" fill="none" marker-end="url(#arr-purple)"/>
+        <!-- models/ → post.py -->
+        <path d="M 150,148 C 150,160 180,160 180,178" stroke="#a371f7" stroke-width="1.2" fill="none" marker-end="url(#arr-purple)"/>
+
+        <!-- user.py → templates/ (虚线：渲染依赖) -->
+        <path d="M 80,210 C 80,240 160,240 160,268" stroke="#484f58" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#arr-dashed)"/>
+        <!-- post.py → templates/ (虚线) -->
+        <path d="M 180,210 C 180,240 180,240 180,268" stroke="#484f58" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#arr-dashed)"/>
+      </svg>
+
+      <!-- 节点层 -->
+
+      <!-- main.py 节点 (top center) -->
+      <div style="position:relative;z-index:1;display:inline-block;margin:0 auto;">
+        <div style="background:#161b22;border:1.5px solid #1f6feb;border-radius:8px;padding:10px 18px;text-align:center;margin:24px auto 0;width:fit-content;display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="#58a6ff"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+          <div>
+            <div style="color:#58a6ff;font-size:12px;font-weight:600;">main.py</div>
+            <div style="color:#484f58;font-size:10px;">入口 · 2 路由 · 18 行</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第二行：models/ 文件夹 + utils.py -->
+      <div style="position:relative;z-index:1;display:flex;gap:40px;margin-top:42px;">
+
+        <!-- models/ 文件夹（带内含文件） -->
+        <div style="background:rgba(163,113,247,0.06);border:1.5px solid #a371f744;border-radius:10px;padding:8px 12px 12px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:0 4px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#a371f7"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"/></svg>
+            <span style="color:#a371f7;font-size:12px;font-weight:600;">models/</span>
+            <span style="color:#484f58;font-size:10px;">数据模型层</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <!-- user.py -->
+            <div style="background:#161b22;border:1px solid #a371f766;border-radius:6px;padding:8px 14px;text-align:center;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="#a371f7"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+                <div>
+                  <div style="color:#d2a8ff;font-size:11px;font-weight:500;">user.py</div>
+                  <div style="color:#484f58;font-size:9px;">User 模型 · 35 行</div>
+                </div>
+              </div>
+            </div>
+            <!-- post.py -->
+            <div style="background:#161b22;border:1px solid #a371f766;border-radius:6px;padding:8px 14px;text-align:center;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="#a371f7"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+                <div>
+                  <div style="color:#d2a8ff;font-size:11px;font-weight:500;">post.py</div>
+                  <div style="color:#484f58;font-size:9px;">Post 模型 · 48 行</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- utils.py 节点 -->
+        <div style="background:#161b22;border:1.5px solid #238636;border-radius:8px;padding:10px 18px;text-align:center;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#238636"><path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0113.25 15h-1a.75.75 0 010-1.5h1a.25.25 0 00.25-.25V6h-2.75A1.75 1.75 0 019.75 3.5V1.5h-4a.25.25 0 00-.25.25v1.5a.75.75 0 01-1.5 0v-1.5z"/></svg>
+            <div>
+              <div style="color:#7ee787;font-size:12px;font-weight:600;">utils.py</div>
+              <div style="color:#484f58;font-size:10px;">工具函数 · 25 行</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- templates/ 文件夹 -->
+      <div style="position:relative;z-index:1;margin-top:60px;">
+        <div style="background:rgba(218,54,51,0.06);border:1.5px solid #da363344;border-radius:10px;padding:8px 16px 10px;display:inline-block;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#da3633"><path d="M1.75 1A1.75 1.75 0 000 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0016 13.25v-8.5A1.75 1.75 0 0014.25 3H7.5a.25.25 0 01-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75z"/></svg>
+            <span style="color:#ff7b72;font-size:12px;font-weight:600;">templates/</span>
+            <span style="color:#484f58;font-size:10px;">3 模板文件</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 图例 -->
+      <div style="position:relative;z-index:1;margin-top:20px;padding-top:12px;border-top:1px solid #21262d;display:flex;gap:20px;font-size:10px;color:#484f58;">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="width:20px;height:1.5px;background:#58a6ff;"></div>
+          <span>import 依赖</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="width:20px;height:1px;background:#484f58;border-top:1px dashed #484f58;"></div>
+          <span>模板渲染</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="width:10px;height:10px;background:rgba(163,113,247,0.06);border:1px solid #a371f744;border-radius:3px;"></div>
+          <span>文件夹分组</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
