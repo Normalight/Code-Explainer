@@ -3,6 +3,12 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+const codeTheme = {
+  ...oneDark,
+  'pre[class*="language-"]': { ...(oneDark as Record<string, Record<string, string>>)['pre[class*="language-"]'], background: '#1a1b26' },
+  'code[class*="language-"]': { ...(oneDark as Record<string, Record<string, string>>)['code[class*="language-"]'], background: 'transparent' },
+};
 import { getFileContent, getExplainUrl, getQuality, getAst } from '../api';
 import AskModal from '../components/AskModal';
 import type { SegmentInfo, QualityAssessment } from '../types';
@@ -229,7 +235,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
             </div>
           </div>
           <div ref={mdRightRef} style={{ flex: 1, overflowY: 'auto' }}>
-            <SyntaxHighlighter language="markdown" style={oneDark} showLineNumbers
+            <SyntaxHighlighter language="markdown" style={codeTheme} showLineNumbers
               customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
             >
               {code}
@@ -322,7 +328,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
             // No analysis yet — show code only (full width)
             code ? (
               <SyntaxHighlighter
-                language={language} style={oneDark} showLineNumbers
+                language={language} style={codeTheme} showLineNumbers
                 customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
               >
                 {code}
@@ -342,7 +348,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                     <div style={{ width: 3, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                       <SyntaxHighlighter
-                        language={language} style={oneDark} showLineNumbers
+                        language={language} style={codeTheme} showLineNumbers
                         startingLineNumber={row.startLine}
                         customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minWidth: 0 }}
                       >
@@ -387,7 +393,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                   {/* Right: code lines */}
                   <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                     <SyntaxHighlighter
-                      language={language} style={oneDark} showLineNumbers wrapLines
+                      language={language} style={codeTheme} showLineNumbers wrapLines
                       startingLineNumber={row.startLine}
                       lineProps={(lineNum) => {
                         const realLine = row.startLine + lineNum - 1;

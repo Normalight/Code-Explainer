@@ -86,7 +86,6 @@ export default function ProjectPage() {
     getDependencies(id).then(setGraphData).catch(() => {});
     getCommits(id).then(setCommits).catch(() => {});
     loadSessions(id);
-    setSidebarCollapsed(true);
   }, [loadSessions]);
 
   useEffect(() => {

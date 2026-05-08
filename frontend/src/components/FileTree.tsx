@@ -36,7 +36,7 @@ interface TreeNodeProps {
 }
 
 function TreeNode({ node, parentPath, depth, onSelectFile, selectedPath, focusPath }: TreeNodeProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const elRef = useRef<HTMLDivElement>(null);
   const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
   const isFile = node.type === 'file';
