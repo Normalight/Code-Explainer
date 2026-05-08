@@ -230,7 +230,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
           </div>
           <div ref={mdRightRef} style={{ flex: 1, overflowY: 'auto' }}>
             <SyntaxHighlighter language="markdown" style={oneDark} showLineNumbers
-              customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent' }}
+              customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
             >
               {code}
             </SyntaxHighlighter>
@@ -323,7 +323,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
             code ? (
               <SyntaxHighlighter
                 language={language} style={oneDark} showLineNumbers
-                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent' }}
+                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
               >
                 {code}
               </SyntaxHighlighter>
@@ -344,7 +344,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                       <SyntaxHighlighter
                         language={language} style={oneDark} showLineNumbers
                         startingLineNumber={row.startLine}
-                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent', minWidth: 0 }}
+                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minWidth: 0 }}
                       >
                         {row.code}
                       </SyntaxHighlighter>
@@ -379,7 +379,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                     onMouseDown={handleSplitResize}
                     style={{
                       width: 3, flexShrink: 0, cursor: 'col-resize',
-                      background: 'transparent', transition: 'background 0.15s',
+                      background: '#1a1b26', transition: 'background 0.15s',
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -396,11 +396,11 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                             display: 'block',
                             borderLeft: `3px solid ${color}`,
                             paddingLeft: 8,
-                            background: realLine === highlightLine ? `${color}30` : `${color}08`,
+                            background: realLine === highlightLine ? `${color}30` : undefined,
                           },
                         } as React.HTMLAttributes<HTMLElement>;
                       }}
-                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent', minHeight: '100%' }}
+                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
                     >
                       {row.code}
                     </SyntaxHighlighter>
