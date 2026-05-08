@@ -101,6 +101,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
 
   const codeRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef(0);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const mdLeftRef = useRef<HTMLDivElement>(null);
   const mdRightRef = useRef<HTMLDivElement>(null);
   const syncingScroll = useRef(false);
@@ -113,6 +114,11 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   // Load file content + AST
   useEffect(() => {
     if (!projectId || !filePath) return;
+    // Close any existing analysis EventSource
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
     setCode('');
     setSegments([]);
     setExplanations({});
@@ -124,6 +130,8 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     setLanguage(detectLanguage(filePath));
     if (isCode) {
       getAst(projectId, filePath).then(setAstNodes).catch(() => setAstNodes([]));
+    } else {
+      setAstNodes([]);
     }
   }, [projectId, filePath]);
 
@@ -133,6 +141,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     const lang = localStorage.getItem('code-explainer-locale')?.startsWith('en') ? 'en' : 'zh';
 
     const es = new EventSource(getExplainUrl(projectId, filePath, lang));
+    eventSourceRef.current = es;
     es.addEventListener('segment_start', (e) => {
       setSegments((prev) => [...prev, JSON.parse(e.data)]);
     });
@@ -148,6 +157,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     });
     es.onerror = () => {
       es.close();
+      eventSourceRef.current = null;
       getQuality(projectId, filePath, lang)
         .then((text) => { try { setQuality(JSON.parse(text)); } catch {} })
         .catch(() => {});
