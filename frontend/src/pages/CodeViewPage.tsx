@@ -230,7 +230,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
           </div>
           <div ref={mdRightRef} style={{ flex: 1, overflowY: 'auto' }}>
             <SyntaxHighlighter language="markdown" style={oneDark} showLineNumbers
-              customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+              customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent' }}
             >
               {code}
             </SyntaxHighlighter>
@@ -323,7 +323,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
             code ? (
               <SyntaxHighlighter
                 language={language} style={oneDark} showLineNumbers
-                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent' }}
               >
                 {code}
               </SyntaxHighlighter>
@@ -344,7 +344,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                       <SyntaxHighlighter
                         language={language} style={oneDark} showLineNumbers
                         startingLineNumber={row.startLine}
-                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minWidth: 0 }}
+                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent', minWidth: 0 }}
                       >
                         {row.code}
                       </SyntaxHighlighter>
@@ -400,7 +400,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                           },
                         } as React.HTMLAttributes<HTMLElement>;
                       }}
-                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
+                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: 'transparent', minHeight: '100%' }}
                     >
                       {row.code}
                     </SyntaxHighlighter>
