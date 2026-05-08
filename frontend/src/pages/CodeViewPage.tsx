@@ -53,6 +53,8 @@ interface AstNode {
   type: string;
   name: string;
   startLine: number;
+  endLine: number;
+  children: AstNode[];
 }
 
 type CodeTab = 'explain' | 'ast';
@@ -366,19 +368,28 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
         <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
           {astNodes.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
-          ) : astNodes.map((node, i) => {
-            const color = AST_COLORS[node.type] || '#8b8b8b';
-            return (
-              <div key={i} onClick={() => setHighlightLine(node.startLine)}
-                style={{ padding: '6px 10px', marginBottom: 3, borderRadius: 6, borderLeft: `3px solid ${color}`, background: `${color}15`, cursor: 'pointer', fontSize: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 500, color }}>{node.name}</span>
-                  <span style={{ fontSize: 10, color: 'var(--text)' }}>L{node.startLine}</span>
-                </div>
-                <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
-              </div>
-            );
-          })}
+          ) : (
+            <AstTreeView nodes={astNodes} onNodeClick={(startLine, endLine) => {
+              setHighlightLine(startLine);
+              setCodeTab('explain');
+              setTimeout(() => {
+                const container = codeRef.current;
+                if (!container) return;
+                const lines = container.querySelectorAll('.react-syntax-highlighter-line-number');
+                for (const line of lines) {
+                  const lineEl = line.parentElement;
+                  if (lineEl) {
+                    const lineNum = parseInt(line.textContent || '0', 10);
+                    if (lineNum === startLine) {
+                      lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      break;
+                    }
+                  }
+                }
+                setHighlightLine(null);
+              }, 300);
+            }} />
+          )}
         </div>
       )}
 
@@ -447,4 +458,65 @@ function detectLanguage(filePath: string): string {
     md: 'markdown', sql: 'sql', sh: 'bash', xml: 'xml',
   };
   return map[ext] || 'text';
+}
+
+const AST_TYPE_ICONS: Record<string, string> = {
+  class: 'C', interface: 'I', struct: 'S', enum: 'E',
+  function: 'ƒ', method: 'M', variable: 'V',
+  trait: 'T', impl: '▶', type: 'T',
+};
+
+function AstTreeView({ nodes, onNodeClick }: { nodes: AstNode[]; onNodeClick: (startLine: number, endLine: number) => void }) {
+  return (
+    <div style={{ fontSize: 13 }}>
+      {nodes.map((node, i) => (
+        <AstTreeNode key={`${node.type}-${node.name}-${i}`} node={node} depth={0} onNodeClick={onNodeClick} />
+      ))}
+    </div>
+  );
+}
+
+function AstTreeNode({ node, depth, onNodeClick }: { node: AstNode; depth: number; onNodeClick: (startLine: number, endLine: number) => void }) {
+  const [expanded, setExpanded] = useState(depth < 1);
+  const hasChildren = node.children && node.children.length > 0;
+  const color = AST_COLORS[node.type] || '#8b8b8b';
+  const icon = AST_TYPE_ICONS[node.type] || '?';
+
+  return (
+    <div>
+      <div
+        onClick={() => onNodeClick(node.startLine, node.endLine)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '4px 8px', borderRadius: 4, cursor: 'pointer',
+          background: `${color}10`, borderLeft: `3px solid ${color}`,
+          marginLeft: depth * 20, marginBottom: 2,
+        }}
+      >
+        {hasChildren ? (
+          <span onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            style={{ cursor: 'pointer', color: 'var(--text)', fontSize: 10, width: 14, textAlign: 'center', flexShrink: 0, userSelect: 'none' }}>
+            {expanded ? '▼' : '▶'}
+          </span>
+        ) : (
+          <span style={{ width: 14, flexShrink: 0 }} />
+        )}
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 4, background: `${color}25`, color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+          {icon}
+        </span>
+        <span style={{ fontWeight: 500, color, flex: 1 }}>{node.name}</span>
+        <span style={{ fontSize: 10, color: 'var(--text)', opacity: 0.5, flexShrink: 0 }}>
+          L{node.startLine}{node.endLine > node.startLine ? `–${node.endLine}` : ''}
+        </span>
+        <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase', opacity: 0.4 }}>{node.type}</span>
+      </div>
+      {hasChildren && expanded && (
+        <div style={{ marginLeft: depth * 20 + 10, borderLeft: '1px solid var(--border)', paddingLeft: 0 }}>
+          {node.children.map((child, i) => (
+            <AstTreeNode key={`${child.type}-${child.name}-${i}`} node={child} depth={depth + 1} onNodeClick={onNodeClick} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

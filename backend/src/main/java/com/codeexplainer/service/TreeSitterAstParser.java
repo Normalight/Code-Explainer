@@ -73,29 +73,33 @@ public class TreeSitterAstParser {
         TSTree tree = parser.parseString(null, code);
         TSNode root = tree.getRootNode();
 
-        List<AstNode> nodes = new ArrayList<>();
-        collectNodes(root, sourceBytes, nodes, 0);
+        List<AstNode> nodes = collectTreeNodes(root, sourceBytes, 0);
         tree.close();
         return nodes;
     }
 
-    private static void collectNodes(TSNode node, byte[] source, List<AstNode> result, int depth) {
-        if (depth > 30) return;
+    private static List<AstNode> collectTreeNodes(TSNode node, byte[] source, int depth) {
+        if (depth > 30) return List.of();
 
-        String type = node.getType();
+        List<AstNode> result = new ArrayList<>();
+        for (int i = 0; i < node.getChildCount(); i++) {
+            TSNode child = node.getChild(i);
+            String type = child.getType();
 
-        if (isInterestingType(type)) {
-            String name = findName(node, source);
-            if (name != null) {
-                int startLine = node.getStartPoint().getRow() + 1;
-                String normalized = normalizeType(type, node);
-                result.add(new AstNode(normalized, name, startLine));
+            if (isInterestingType(type)) {
+                String name = findName(child, source);
+                if (name != null) {
+                    int startLine = child.getStartPoint().getRow() + 1;
+                    int endLine = child.getEndPoint().getRow() + 1;
+                    String normalized = normalizeType(type, child);
+                    List<AstNode> children = collectTreeNodes(child, source, depth + 1);
+                    result.add(new AstNode(normalized, name, startLine, endLine, children));
+                }
+            } else {
+                result.addAll(collectTreeNodes(child, source, depth + 1));
             }
         }
-
-        for (int i = 0; i < node.getChildCount(); i++) {
-            collectNodes(node.getChild(i), source, result, depth + 1);
-        }
+        return result;
     }
 
     private static boolean isInterestingType(String type) {

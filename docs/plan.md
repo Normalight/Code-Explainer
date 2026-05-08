@@ -112,8 +112,8 @@
 - 问题：对齐不精确，底部无法对齐
 </done>
 
-<doing>
-### 解释块与代码严格对齐（新方案）✅ 已完成待验证
+<done>
+### 解释块与代码严格对齐（新方案）
 - 每个 segment 渲染为一行 flex row: 左解释卡片(40%) + 右对应代码行(60%)
 - 单滚动容器，不需要同步滚动
 - 顶部和底部严格对齐（flex 行高度 = max(左, 右)）
@@ -148,10 +148,12 @@
 - API 层 mock 测试
 </todo>
 
-<todo>
-### P2 功能：AST 视图优化
-- 当前 AST 是平铺列表，应改为树形结构
-- 需要后端返回嵌套的 AST 结构而非扁平节点列表
+<done>
+### AST 树形视图
+- 后端：TreeSitterAstParser.collectTreeNodes() 返回嵌套树结构，AstNode 添加 endLine 字段
+- 前端：AstTreeView + AstTreeNode 递归组件，可展开/折叠
+- 点击节点自动切换到 explain tab 并滚动到对应代码行
+- 连接线（border-left），颜色按节点类型区分，类型图标
 </todo>
 
 <todo>
