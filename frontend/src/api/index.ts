@@ -80,3 +80,30 @@ export async function getQuality(projectId: number, filePath: string): Promise<s
 export function getExplainUrl(projectId: number, filePath: string): string {
   return `${API_BASE}/${projectId}/explain?filePath=${encodeURIComponent(filePath)}`;
 }
+
+export function getAskUrl(projectId: number, filePath: string, startLine: number, endLine: number, question: string): string {
+  const params = new URLSearchParams({
+    filePath,
+    startLine: String(startLine),
+    endLine: String(endLine),
+    question,
+  });
+  return `${API_BASE}/${projectId}/ask?${params}`;
+}
+
+export function askQuestion(projectId: number, filePath: string, startLine: number, endLine: number, question: string): Promise<string> {
+  return new Promise((resolve) => {
+    const url = getAskUrl(projectId, filePath, startLine, endLine, question);
+    const eventSource = new EventSource(url);
+    let result = '';
+
+    eventSource.addEventListener('content', (e) => {
+      result += e.data;
+    });
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      resolve(result);
+    };
+  });
+}
