@@ -4,7 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getFileContent, getExplainUrl, getQuality } from '../api';
+import { getFileContent, getExplainUrl, getQuality, getAst } from '../api';
 import AskModal from '../components/AskModal';
 import type { SegmentInfo, QualityAssessment } from '../types';
 
@@ -14,12 +14,26 @@ const SEGMENT_COLORS = [
   '#06b6d4', '#3b82f6',
 ];
 
+const AST_COLORS: Record<string, string> = {
+  function: '#22c55e', method: '#22c55e',
+  class: '#3b82f6', struct: '#3b82f6', interface: '#8b5cf6',
+  variable: '#f59e0b',
+};
+
 interface Selection {
   text: string;
   startLine: number;
   endLine: number;
   rect: { top: number; left: number };
 }
+
+interface AstNode {
+  type: string;
+  name: string;
+  startLine: number;
+}
+
+type CodeTab = 'explain' | 'ast';
 
 export default function CodeViewPage() {
   const { projectId: pid, '*': filePath } = useParams<{ projectId: string; '*': string }>();
@@ -33,6 +47,9 @@ export default function CodeViewPage() {
   const [quality, setQuality] = useState<QualityAssessment | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
+  const [codeTab, setCodeTab] = useState<CodeTab>('explain');
+  const [astNodes, setAstNodes] = useState<AstNode[]>([]);
+  const [highlightLine, setHighlightLine] = useState<number | null>(null);
 
   const codeRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +57,7 @@ export default function CodeViewPage() {
     if (!projectId || !filePath) return;
     getFileContent(projectId, filePath).then(setCode).catch(console.error);
     setLanguage(detectLanguage(filePath));
+    getAst(projectId, filePath).then(setAstNodes).catch(() => setAstNodes([]));
   }, [projectId, filePath]);
 
   useEffect(() => {
@@ -122,14 +140,20 @@ export default function CodeViewPage() {
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)' }}>
       {/* Left: Explanations */}
-      <div style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto', padding: '16px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+      <div style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <button onClick={handleBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 4 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
           <span style={{ fontWeight: 600, color: 'var(--text-h)', fontSize: 14 }}>{filePath}</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
+            <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '4px 10px', borderRadius: 4, fontSize: 12 }}>Explain</button>
+            <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '4px 10px', borderRadius: 4, fontSize: 12 }}>AST</button>
+          </div>
         </div>
 
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+        {codeTab === 'explain' ? (<>
         {segments.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
             <div className="spinner" style={{ width: 24, height: 24, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
@@ -157,9 +181,46 @@ export default function CodeViewPage() {
           );
         })}
         {quality && <QualityCard quality={quality} />}
+        </>) : (
+          /* AST tab */
+          <div>
+            {astNodes.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>No AST nodes found</div>
+            ) : (
+              <div>
+                {astNodes.map((node, i) => {
+                  const color = AST_COLORS[node.type] || '#8b8b8b';
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => setHighlightLine(node.startLine)}
+                      style={{
+                        padding: '8px 12px',
+                        marginBottom: 4,
+                        borderRadius: 6,
+                        borderLeft: `3px solid ${color}`,
+                        background: `${color}15`,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = `${color}30`)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = `${color}15`)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 500, color }}>{node.name}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text)' }}>L{node.startLine}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        </div>
       </div>
-
-      {/* Right: Code */}
       <div ref={codeRef} style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
         {code && (
           <SyntaxHighlighter
@@ -175,7 +236,10 @@ export default function CodeViewPage() {
                   display: 'block',
                   borderLeft: color ? `3px solid ${color}` : '3px solid transparent',
                   paddingLeft: color ? 8 : 11,
-                  background: color ? `${color}10` : 'transparent',
+                  background: lineNum === highlightLine ? '#6366f130' : color ? `${color}10` : 'transparent',
+                },
+                ref: (el: HTMLElement | null) => {
+                  if (el && lineNum === highlightLine) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 },
               } as React.HTMLAttributes<HTMLElement>;
             }}

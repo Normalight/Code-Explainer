@@ -6,7 +6,10 @@ import com.codeexplainer.repository.ProjectFileRepository;
 import com.codeexplainer.repository.ProjectRepository;
 import com.codeexplainer.service.CodeSegment;
 import com.codeexplainer.service.ExplanationService;
+import com.codeexplainer.service.DependencyAnalyzer;
 import com.codeexplainer.service.FileService;
+import com.codeexplainer.service.SimpleAstParser;
+import com.codeexplainer.service.AstNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -134,6 +138,49 @@ public class ExplanationController {
         ));
     }
 
+    @GetMapping("/{id}/dependencies")
+    public ResponseEntity<DependencyGraph> dependencies(@PathVariable Long id) {
+        Project project = projectRepository.findById(id).orElse(null);
+        if (project == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<ProjectFile> files = projectFileRepository.findByProject(project);
+
+        // Build file content map
+        Map<String, String> fileContentMap = new java.util.LinkedHashMap<>();
+        for (ProjectFile pf : files) {
+            try {
+                String content = fileService.getFileContent(id, pf.getPath());
+                fileContentMap.put(pf.getPath(), content);
+            } catch (Exception ignored) {}
+        }
+
+        // Parse imports and resolve
+        List<Map<String, String>> nodes = new ArrayList<>();
+        List<Map<String, String>> edges = new ArrayList<>();
+
+        for (ProjectFile pf : files) {
+            nodes.add(Map.of("id", pf.getPath(), "label", pf.getPath(),
+                    "language", pf.getLanguage() != null ? pf.getLanguage() : ""));
+
+            String content = fileContentMap.get(pf.getPath());
+            if (content == null) continue;
+
+            List<String> imports = DependencyAnalyzer.parseImports(content, pf.getLanguage());
+            for (String imp : imports) {
+                String resolved = DependencyAnalyzer.resolveImport(imp, pf.getLanguage(), fileContentMap, pf.getPath());
+                if (resolved != null && !resolved.equals(pf.getPath())) {
+                    edges.add(Map.of("source", pf.getPath(), "target", resolved));
+                }
+            }
+        }
+
+        return ResponseEntity.ok(new DependencyGraph(nodes, edges));
+    }
+
+    public record DependencyGraph(List<Map<String, String>> nodes, List<Map<String, String>> edges) {}
+
     @GetMapping("/{id}/structure")
     public ResponseEntity<Map<String, String>> structure(@PathVariable Long id) {
         Project project = projectRepository.findById(id).orElse(null);
@@ -147,6 +194,21 @@ public class ExplanationController {
         String analysis = explanationService.analyzeProjectStructure(project.getName(), fileTreeText);
 
         return ResponseEntity.ok(Map.of("analysis", analysis));
+    }
+
+    @GetMapping("/{id}/ast")
+    public ResponseEntity<?> getFileAst(
+            @PathVariable Long id,
+            @RequestParam String filePath) {
+        Project project = projectRepository.findById(id).orElse(null);
+        if (project == null) return ResponseEntity.notFound().build();
+
+        ProjectFile file = projectFileRepository.findByProjectAndPath(project, filePath).orElse(null);
+        if (file == null) return ResponseEntity.notFound().build();
+
+        String code = fileService.getFileContent(id, filePath);
+        List<AstNode> ast = SimpleAstParser.parse(code, file.getLanguage());
+        return ResponseEntity.ok(ast);
     }
 
     private String renderFileTree(FileService.FileTreeNode node, int depth) {

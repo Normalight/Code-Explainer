@@ -81,6 +81,12 @@ export function getExplainUrl(projectId: number, filePath: string): string {
   return `${API_BASE}/${projectId}/explain?filePath=${encodeURIComponent(filePath)}`;
 }
 
+export async function getAst(projectId: number, filePath: string): Promise<{ type: string; name: string; startLine: number }[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/ast?filePath=${encodeURIComponent(filePath)}`);
+  if (!res.ok) throw new Error(`Failed to get AST: ${res.status}`);
+  return res.json();
+}
+
 export function getAskUrl(projectId: number, filePath: string, startLine: number, endLine: number, question: string): string {
   const params = new URLSearchParams({
     filePath,
@@ -89,6 +95,12 @@ export function getAskUrl(projectId: number, filePath: string, startLine: number
     question,
   });
   return `${API_BASE}/${projectId}/ask?${params}`;
+}
+
+export async function getDependencies(projectId: number): Promise<{ nodes: { id: string; label: string; language: string }[]; edges: { source: string; target: string }[] }> {
+  const res = await fetch(`${API_BASE}/${projectId}/dependencies`);
+  if (!res.ok) throw new Error(`Failed to get dependencies: ${res.status}`);
+  return res.json();
 }
 
 export function askQuestion(projectId: number, filePath: string, startLine: number, endLine: number, question: string): Promise<string> {

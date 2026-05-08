@@ -2,12 +2,12 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import FileTree from '../components/FileTree';
 import UploadZone from '../components/UploadZone';
-import { getFileTree, getProgress, getStructure } from '../api';
+import { getFileTree, getProgress, getStructure, getDependencies } from '../api';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { FileTreeNode, ProgressInfo } from '../types';
 
-type Tab = 'overview' | 'chat';
+type Tab = 'overview' | 'graph' | 'chat';
 
 interface ChatMsg {
   role: 'user' | 'assistant';
@@ -25,6 +25,9 @@ export default function ProjectPage() {
   const [selectedPath, setSelectedPath] = useState<string | undefined>();
   const [tab, setTab] = useState<Tab>('overview');
 
+  // Graph state
+  const [graphData, setGraphData] = useState<{ nodes: { id: string; label: string; language: string }[]; edges: { source: string; target: string }[] } | null>(null);
+
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -35,6 +38,7 @@ export default function ProjectPage() {
   const loadProject = useCallback(async (id: number) => {
     getFileTree(id).then(setTree).catch(console.error);
     getStructure(id).then((s) => setStructure(s.analysis)).catch(console.error);
+    getDependencies(id).then(setGraphData).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -152,6 +156,7 @@ export default function ProjectPage() {
         {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 24px', flexShrink: 0 }}>
           <TabButton active={tab === 'overview'} onClick={() => setTab('overview')}>Overview</TabButton>
+          <TabButton active={tab === 'graph'} onClick={() => setTab('graph')}>Dependencies</TabButton>
           <TabButton active={tab === 'chat'} onClick={() => setTab('chat')}>AI Chat</TabButton>
         </div>
 
@@ -184,6 +189,17 @@ export default function ProjectPage() {
                     <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                   </svg>
                   <p style={{ marginTop: 16 }}>Select a file from the sidebar to view its analysis</p>
+                </div>
+              )}
+            </div>
+          ) : tab === 'graph' ? (
+            <div style={{ padding: '32px 40px' }}>
+              <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>Dependency Graph</h2>
+              {graphData && graphData.nodes.length > 0 ? (
+                <DependencyGraphView nodes={graphData.nodes} edges={graphData.edges} onFileClick={handleFileSelect} />
+              ) : (
+                <div style={{ textAlign: 'center', padding: 60, color: 'var(--text)' }}>
+                  <p>No dependency data available</p>
                 </div>
               )}
             </div>
@@ -259,6 +275,66 @@ export default function ProjectPage() {
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
+}
+
+function DependencyGraphView({ nodes, edges, onFileClick }: {
+  nodes: { id: string; label: string; language: string }[];
+  edges: { source: string; target: string }[];
+  onFileClick: (path: string) => void;
+}) {
+  // Simple force-directed-like layout using columns
+  const columns = groupByDirectory(nodes);
+  const colKeys = Object.keys(columns);
+
+  return (
+    <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 16 }}>
+      {colKeys.map((col) => (
+        <div key={col} style={{ minWidth: 180 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-h)', marginBottom: 8, padding: '0 4px' }}>
+            {col}
+          </div>
+          {columns[col].map((node) => {
+            const incoming = edges.filter((e) => e.target === node.id).length;
+            const outgoing = edges.filter((e) => e.source === node.id).length;
+            return (
+              <div
+                key={node.id}
+                onClick={() => onFileClick(node.id)}
+                style={{
+                  padding: '8px 12px',
+                  marginBottom: 4,
+                  borderRadius: 6,
+                  background: 'var(--code-bg)',
+                  border: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+              >
+                <div style={{ color: 'var(--text-h)', fontWeight: 500 }}>{node.id.split('/').pop()}</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 10, color: 'var(--text)' }}>
+                  {incoming > 0 && <span>← {incoming}</span>}
+                  {outgoing > 0 && <span>→ {outgoing}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function groupByDirectory(nodes: { id: string; label: string; language: string }[]): Record<string, typeof nodes> {
+  const groups: Record<string, typeof nodes> = {};
+  for (const node of nodes) {
+    const dir = node.id.includes('/') ? node.id.substring(0, node.id.lastIndexOf('/')) : 'root';
+    if (!groups[dir]) groups[dir] = [];
+    groups[dir].push(node);
+  }
+  return groups;
 }
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
