@@ -7,8 +7,9 @@
 ## 约束
 
 - **i18n 必做**：所有用户可见字符串用 `t()` 调用，补充 zh-CN/en-US 翻译键
-- **优先用成熟库**：能用 npm 包就不用自己写
+- **优先用成熟库**：能用成熟库就不要自己重新实现（npm 包等）
 - **先写计划**：实施前更新此文档，标明范围
+- **完成后提交 git**：完成功能/修改后自动 git commit
 
 ---
 
@@ -98,6 +99,20 @@
 - 确认 `structure_analysis` 列已被自动添加到 projects 表
 - 如果 `ddl-auto: update` 未生效需要手动 ALTER TABLE
 </todo>
+
+<todo>
+### 导入后 sidebar 默认折叠
+- 上传或 GitHub 导入项目后，进入项目页时 sidebar 应默认折叠
+- `ProjectPage.tsx`: 在 `loadProject` 或导航时设置 `sidebarCollapsed = true`
+</todo>
+
+<doing>
+### 解释块与代码对齐 + 同步滚动
+- 核心问题：左侧有 header（文件名+tabs），右侧代码区没有，导致 scroll 起点不对齐
+- 方案：右侧代码区顶部也加一个与左侧等高的 header（文件信息栏）
+- 然后两侧用行号映射实现同步滚动
+- Markdown 预览/源码也要同步滚动（按百分比同步）
+</doing>
 
 <todo>
 ### 解释块与代码同步滚动

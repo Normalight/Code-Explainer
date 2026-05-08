@@ -62,6 +62,10 @@ interface Props {
   onClose: () => void;
 }
 
+const LINE_HEIGHT = 20.8;
+const CODE_TOP_PAD = 16;
+const HEADER_HEIGHT = 37; // header div height (padding 8+8 + content ~21)
+
 export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const { t } = useI18n();
   const [code, setCode] = useState('');
@@ -76,7 +80,12 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
 
   const codeRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+  const mdLeftRef = useRef<HTMLDivElement>(null);
+  const mdRightRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef(0);
+  const syncingScroll = useRef(false);
 
   const isCode = isCodeFile(filePath);
   const isImage = isImageFile(filePath);
@@ -155,12 +164,58 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     return () => document.removeEventListener('mouseup', handleTextSelection);
   }, [handleTextSelection]);
 
-  const LINE_HEIGHT = 20.8;
-  const CODE_TOP_PAD = 16;
+  // Sync scroll between left (explanation) and right (code) panels
+  useEffect(() => {
+    const left = leftRef.current;
+    const right = rightRef.current;
+    if (!left || !right || segments.length === 0) return;
 
-  // Header bar shared by all file types
+    const syncScroll = (source: 'left' | 'right') => (e: Event) => {
+      if (syncingScroll.current) return;
+      syncingScroll.current = true;
+      const el = e.currentTarget as HTMLDivElement;
+      const target = source === 'left' ? right : left;
+      // Sync by scroll ratio
+      const ratio = el.scrollTop / (el.scrollHeight - el.clientHeight || 1);
+      target.scrollTop = ratio * (target.scrollHeight - target.clientHeight);
+      requestAnimationFrame(() => { syncingScroll.current = false; });
+    };
+
+    left.addEventListener('scroll', syncScroll('left'), { passive: true });
+    right.addEventListener('scroll', syncScroll('right'), { passive: true });
+    return () => {
+      left.removeEventListener('scroll', syncScroll('left'));
+      right.removeEventListener('scroll', syncScroll('right'));
+    };
+  }, [segments.length]);
+
+  // Sync scroll for markdown preview/source
+  useEffect(() => {
+    const left = mdLeftRef.current;
+    const right = mdRightRef.current;
+    if (!left || !right) return;
+
+    const syncScroll = (source: 'left' | 'right') => (e: Event) => {
+      if (syncingScroll.current) return;
+      syncingScroll.current = true;
+      const el = e.currentTarget as HTMLDivElement;
+      const target = source === 'left' ? right : left;
+      const ratio = el.scrollTop / (el.scrollHeight - el.clientHeight || 1);
+      target.scrollTop = ratio * (target.scrollHeight - target.clientHeight);
+      requestAnimationFrame(() => { syncingScroll.current = false; });
+    };
+
+    left.addEventListener('scroll', syncScroll('left'), { passive: true });
+    right.addEventListener('scroll', syncScroll('right'), { passive: true });
+    return () => {
+      left.removeEventListener('scroll', syncScroll('left'));
+      right.removeEventListener('scroll', syncScroll('right'));
+    };
+  }, [isMarkdownFile(filePath), code]);
+
+  // Full-width header (shared by left and right)
   const header = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0, height: HEADER_HEIGHT }}>
       <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 2 }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
       </button>
@@ -178,34 +233,27 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   if (!isCode) {
     const isMd = isMarkdownFile(filePath);
 
-    // Markdown: left preview, right source
+    // Markdown: left preview, right source with synced scroll
     if (isMd && code) {
       return (
         <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
           {/* Left: Markdown preview */}
-          <div style={{ width: '50%', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {header}
-            <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
+          <div ref={mdLeftRef} style={{ width: '50%', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
+            <div style={{ padding: '20px 24px' }}>
               <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text)' }}>
                 <Markdown remarkPlugins={[remarkGfm]}>{code}</Markdown>
               </div>
             </div>
           </div>
           {/* Right: Raw source */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text)', fontWeight: 500, background: 'var(--code-bg)' }}>
-              {t('source')}
-            </div>
-            <div style={{ flex: 1, overflow: 'auto' }}>
-              <VirtualCodeView code={code} language="markdown" segments={[]} highlightLine={null} SEGMENT_COLORS={SEGMENT_COLORS} />
-            </div>
+          <div ref={mdRightRef} style={{ flex: 1, overflowY: 'auto' }}>
+            <VirtualCodeView code={code} language="markdown" segments={[]} highlightLine={null} SEGMENT_COLORS={SEGMENT_COLORS} />
           </div>
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       );
     }
 
-    // Other non-code files: single panel
+    // Other non-code files
     return (
       <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -232,83 +280,84 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     );
   }
 
-  // Code file: left-right split with Explain/AST tabs
+  // Code file: header spans full width, then left-right split with synced scroll
   return (
-    <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
-      {/* Left: Explanations / AST */}
-      <div style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {header}
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: `0 16px` }}>
-        {codeTab === 'explain' ? (<>
-        {segments.length === 0 && (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
-            <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-            {t('analyzing')}
-          </div>
-        )}
-        {segments.map((seg, i) => {
-          const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-          const explanation = explanations[i];
-          const prevEndLine = i > 0 ? segments[i - 1].endLine : 0;
-          const gapLines = seg.startLine - prevEndLine - (i > 0 ? 1 : 0);
-          const marginTop = i === 0
-            ? CODE_TOP_PAD + (seg.startLine - 1) * LINE_HEIGHT
-            : Math.max(0, gapLines) * LINE_HEIGHT;
-          return (
-            <div key={i} style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', marginBottom: 10, background: `${color}10`, marginTop }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontWeight: 600, fontSize: 13, color }}>{seg.title}</span>
-                <span style={{ fontSize: 11, opacity: 0.6 }}>L{seg.startLine}–{seg.endLine}</span>
-              </div>
-              {explanation ? (
-                <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
-                  <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>{t('analyzingSeg')}</div>
-              )}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', background: 'var(--bg)' }}>
+      {header}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* Left: Explanations / AST */}
+        <div ref={leftRef} style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
+          <div style={{ padding: `0 16px` }}>
+          {codeTab === 'explain' ? (<>
+          {segments.length === 0 && (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
+              <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              {t('analyzing')}
             </div>
-          );
-        })}
-        {quality && <QualityCard quality={quality} />}
-        </>) : (
-          <div style={{ padding: '12px 0' }}>
-            {astNodes.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
-            ) : astNodes.map((node, i) => {
-              const color = AST_COLORS[node.type] || '#8b8b8b';
-              return (
-                <div key={i} onClick={() => setHighlightLine(node.startLine)}
-                  style={{ padding: '6px 10px', marginBottom: 3, borderRadius: 6, borderLeft: `3px solid ${color}`, background: `${color}15`, cursor: 'pointer', fontSize: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 500, color }}>{node.name}</span>
-                    <span style={{ fontSize: 10, color: 'var(--text)' }}>L{node.startLine}</span>
-                  </div>
-                  <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
+          )}
+          {segments.map((seg, i) => {
+            const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+            const explanation = explanations[i];
+            const prevEndLine = i > 0 ? segments[i - 1].endLine : 0;
+            const gapLines = seg.startLine - prevEndLine - (i > 0 ? 1 : 0);
+            const marginTop = i === 0
+              ? CODE_TOP_PAD + (seg.startLine - 1) * LINE_HEIGHT
+              : Math.max(0, gapLines) * LINE_HEIGHT;
+            return (
+              <div key={i} style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', marginBottom: 10, background: `${color}10`, marginTop }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontWeight: 600, fontSize: 13, color }}>{seg.title}</span>
+                  <span style={{ fontSize: 11, opacity: 0.6 }}>L{seg.startLine}–{seg.endLine}</span>
                 </div>
-              );
-            })}
+                {explanation ? (
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
+                    <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>{t('analyzingSeg')}</div>
+                )}
+              </div>
+            );
+          })}
+          {quality && <QualityCard quality={quality} />}
+          </>) : (
+            <div style={{ padding: '12px 0' }}>
+              {astNodes.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
+              ) : astNodes.map((node, i) => {
+                const color = AST_COLORS[node.type] || '#8b8b8b';
+                return (
+                  <div key={i} onClick={() => setHighlightLine(node.startLine)}
+                    style={{ padding: '6px 10px', marginBottom: 3, borderRadius: 6, borderLeft: `3px solid ${color}`, background: `${color}15`, cursor: 'pointer', fontSize: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 500, color }}>{node.name}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text)' }}>L{node.startLine}</span>
+                    </div>
+                    <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           </div>
-        )}
         </div>
-      </div>
-      <div ref={codeRef} style={{ flex: 1, position: 'relative', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {code && (
-          <VirtualCodeView code={code} language={language} segments={segments} highlightLine={highlightLine} SEGMENT_COLORS={SEGMENT_COLORS} />
-        )}
-        {selection && (
-          <div style={{ position: 'fixed', top: selection.rect.top - 40, left: selection.rect.left - 60, background: '#21262d', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', display: 'flex', gap: 2, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-            <button onClick={() => { setShowAskModal(true); setSelection(null); }} title={t('askAI')}
-              style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-            </button>
-            <button onClick={() => { navigator.clipboard.writeText(selection.text); setSelection(null); }} title={t('copy')}
-              style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-            </button>
-          </div>
-        )}
+        <div ref={(el) => { codeRef.current = el; rightRef.current = el; }} style={{ flex: 1, position: 'relative', overflow: 'auto' }}>
+          {code && (
+            <VirtualCodeView code={code} language={language} segments={segments} highlightLine={highlightLine} SEGMENT_COLORS={SEGMENT_COLORS} />
+          )}
+          {selection && (
+            <div style={{ position: 'fixed', top: selection.rect.top - 40, left: selection.rect.left - 60, background: '#21262d', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', display: 'flex', gap: 2, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+              <button onClick={() => { setShowAskModal(true); setSelection(null); }} title={t('askAI')}
+                style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+              </button>
+              <button onClick={() => { navigator.clipboard.writeText(selection.text); setSelection(null); }} title={t('copy')}
+                style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {showAskModal && selection && (
