@@ -299,13 +299,13 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
             segmentRows.map((row, ri) => {
               if (row.type === 'gap') {
                 return (
-                  <div key={`gap-${ri}`} style={{ display: 'flex' }}>
-                    <div style={{ width: '40%' }} />
-                    <div style={{ flex: 1 }}>
+                  <div key={`gap-${ri}`} style={{ display: 'flex', minWidth: 0 }}>
+                    <div style={{ width: '40%', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                       <SyntaxHighlighter
                         language={language} style={oneDark} showLineNumbers
                         startingLineNumber={row.startLine}
-                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minWidth: 0 }}
                       >
                         {row.code}
                       </SyntaxHighlighter>
@@ -318,7 +318,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
               const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
               const explanation = explanations[i];
               return (
-                <div key={`seg-${ri}`} style={{ display: 'flex', borderBottom: `1px solid ${color}20` }}>
+                <div key={`seg-${ri}`} style={{ display: 'flex', minWidth: 0, borderBottom: `1px solid ${color}20` }}>
                   {/* Left: explanation card */}
                   <div style={{ width: '40%', padding: '12px 16px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                     <div style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', background: `${color}10`, flex: 1 }}>
@@ -336,7 +336,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
                     </div>
                   </div>
                   {/* Right: code lines for this segment */}
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                     <SyntaxHighlighter
                       language={language} style={oneDark} showLineNumbers wrapLines
                       startingLineNumber={row.startLine}
