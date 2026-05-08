@@ -36,11 +36,25 @@ interface TreeNodeProps {
 }
 
 function TreeNode({ node, parentPath, depth, onSelectFile, selectedPath, focusPath }: TreeNodeProps) {
-  const [collapsed, setCollapsed] = useState(true);
-  const elRef = useRef<HTMLDivElement>(null);
   const fullPath = parentPath ? `${parentPath}/${node.name}` : node.name;
   const isFile = node.type === 'file';
   const isSelected = selectedPath === fullPath;
+
+  const [collapsed, setCollapsed] = useState(() => {
+    if (isFile) return true;
+    const saved = localStorage.getItem(`ft-col-${fullPath}`);
+    return saved !== null ? saved === '1' : true;
+  });
+
+  const persistToggle = useCallback(() => {
+    setCollapsed(prev => {
+      const next = !prev;
+      if (!isFile) localStorage.setItem(`ft-col-${fullPath}`, next ? '1' : '0');
+      return next;
+    });
+  }, [fullPath, isFile]);
+
+  const elRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand if this node is an ancestor of focusPath
   const isAncestorOfFocus = !!(focusPath && focusPath !== fullPath && focusPath.startsWith(fullPath + '/'));
@@ -49,8 +63,9 @@ function TreeNode({ node, parentPath, depth, onSelectFile, selectedPath, focusPa
   useEffect(() => {
     if (isAncestorOfFocus && collapsed) {
       setCollapsed(false);
+      localStorage.setItem(`ft-col-${fullPath}`, '0');
     }
-  }, [focusPath, isAncestorOfFocus, collapsed]);
+  }, [focusPath, isAncestorOfFocus, collapsed, fullPath]);
 
   // Scroll to focused element
   useEffect(() => {
@@ -63,9 +78,9 @@ function TreeNode({ node, parentPath, depth, onSelectFile, selectedPath, focusPa
     if (isFile) {
       onSelectFile(fullPath);
     } else {
-      setCollapsed(c => !c);
+      persistToggle();
     }
-  }, [isFile, fullPath, onSelectFile]);
+  }, [isFile, fullPath, onSelectFile, persistToggle]);
 
   const showAsFocused = isSelected || isFocusTarget;
 

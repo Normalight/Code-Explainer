@@ -84,13 +84,15 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [astNodes, setAstNodes] = useState<AstNode[]>([]);
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [splitRatio, setSplitRatio] = useState(0.4);
+  const [splitRatio, setSplitRatio] = useState(() => Number(localStorage.getItem('split-ratio')) || 0.4);
 
   const codeRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef(0);
   const mdLeftRef = useRef<HTMLDivElement>(null);
   const mdRightRef = useRef<HTMLDivElement>(null);
   const syncingScroll = useRef(false);
+
+  useEffect(() => { localStorage.setItem('split-ratio', String(splitRatio)); }, [splitRatio]);
 
   const isCode = isCodeFile(filePath);
   const isImage = isImageFile(filePath);
@@ -198,11 +200,11 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   // Draggable split ratio between explanation and code
   const handleSplitResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    const container = codeRef.current?.parentElement?.parentElement;
-    if (!container) return;
+    const row = (e.currentTarget as HTMLElement).parentElement;
+    if (!row) return;
     const startX = e.clientX;
     const startRatio = splitRatio;
-    const containerWidth = container.getBoundingClientRect().width;
+    const containerWidth = row.getBoundingClientRect().width;
     let raf = 0;
     let targetRatio = startRatio;
     const onMove = (ev: MouseEvent) => {

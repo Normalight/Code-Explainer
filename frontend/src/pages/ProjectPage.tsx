@@ -52,8 +52,11 @@ export default function ProjectPage() {
   const [importError, setImportError] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [sidebarWidth, setSidebarWidth] = useState(260);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.getItem('sidebar-width')) || 260);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === '1');
+
+  useEffect(() => { localStorage.setItem('sidebar-width', String(sidebarWidth)); }, [sidebarWidth]);
+  useEffect(() => { localStorage.setItem('sidebar-collapsed', sidebarCollapsed ? '1' : '0'); }, [sidebarCollapsed]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
