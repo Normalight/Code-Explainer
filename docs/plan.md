@@ -107,16 +107,20 @@
 </done>
 
 <done>
-### 解释块与代码对齐 + 同步滚动
-- CodeViewPanel header 改为全宽（`flexDirection: column`），左右两侧 scroll 起点一致
-- 左右面板按 scroll ratio 同步滚动，用 `syncingScroll` ref 防止循环触发
-- Markdown 预览/源码也按百分比同步滚动
+### 解释块与代码对齐 + 同步滚动（旧方案已废弃）
+- 旧方案：两个独立滚动面板 + marginTop 估算对齐 + scroll ratio 同步
+- 问题：对齐不精确，底部无法对齐
 </done>
 
-<done>
-### 解释块与代码同步滚动
-- 已合并到上方「对齐+同步滚动」任务中完成
-</done>
+<doing>
+### 解释块与代码严格对齐（新方案）
+- 核心思路：每个 segment 渲染为一行（flex row），左侧解释卡片 + 右侧对应代码行
+- 单滚动容器，不需要同步滚动
+- 每行高度 = max(解释高度, 代码高度)，矮的一侧自动补间距
+- 顶部和底部严格对齐
+- segment 之间的代码（gap）渲染为代码行，无解释卡片
+- 使用 SyntaxHighlighter 的 startingLineNumber 保持行号连续
+</doing>
 
 <todo>
 ### Redis 缓存（未开始）

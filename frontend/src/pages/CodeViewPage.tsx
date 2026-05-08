@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { getFileContent, getExplainUrl, getQuality, getAst } from '../api';
 import AskModal from '../components/AskModal';
-import VirtualCodeView from '../components/VirtualCodeView';
 import type { SegmentInfo, QualityAssessment } from '../types';
 import { useI18n } from '../i18n';
 
@@ -62,9 +63,7 @@ interface Props {
   onClose: () => void;
 }
 
-const LINE_HEIGHT = 20.8;
-const CODE_TOP_PAD = 16;
-const HEADER_HEIGHT = 37; // header div height (padding 8+8 + content ~21)
+const HEADER_HEIGHT = 37;
 
 export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const { t } = useI18n();
@@ -80,11 +79,9 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
 
   const codeRef = useRef<HTMLDivElement>(null);
-  const leftRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
+  const activeSegmentRef = useRef(0);
   const mdLeftRef = useRef<HTMLDivElement>(null);
   const mdRightRef = useRef<HTMLDivElement>(null);
-  const activeSegmentRef = useRef(0);
   const syncingScroll = useRef(false);
 
   const isCode = isCodeFile(filePath);
@@ -164,31 +161,6 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     return () => document.removeEventListener('mouseup', handleTextSelection);
   }, [handleTextSelection]);
 
-  // Sync scroll between left (explanation) and right (code) panels
-  useEffect(() => {
-    const left = leftRef.current;
-    const right = rightRef.current;
-    if (!left || !right || segments.length === 0) return;
-
-    const syncScroll = (source: 'left' | 'right') => (e: Event) => {
-      if (syncingScroll.current) return;
-      syncingScroll.current = true;
-      const el = e.currentTarget as HTMLDivElement;
-      const target = source === 'left' ? right : left;
-      // Sync by scroll ratio
-      const ratio = el.scrollTop / (el.scrollHeight - el.clientHeight || 1);
-      target.scrollTop = ratio * (target.scrollHeight - target.clientHeight);
-      requestAnimationFrame(() => { syncingScroll.current = false; });
-    };
-
-    left.addEventListener('scroll', syncScroll('left'), { passive: true });
-    right.addEventListener('scroll', syncScroll('right'), { passive: true });
-    return () => {
-      left.removeEventListener('scroll', syncScroll('left'));
-      right.removeEventListener('scroll', syncScroll('right'));
-    };
-  }, [segments.length]);
-
   // Sync scroll for markdown preview/source
   useEffect(() => {
     const left = mdLeftRef.current;
@@ -247,7 +219,11 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
           </div>
           {/* Right: Raw source */}
           <div ref={mdRightRef} style={{ flex: 1, overflowY: 'auto' }}>
-            <VirtualCodeView code={code} language="markdown" segments={[]} highlightLine={null} SEGMENT_COLORS={SEGMENT_COLORS} />
+            <SyntaxHighlighter language="markdown" style={oneDark} showLineNumbers
+              customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+            >
+              {code}
+            </SyntaxHighlighter>
           </div>
         </div>
       );
@@ -280,85 +256,144 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     );
   }
 
-  // Code file: header spans full width, then left-right split with synced scroll
+  // Build segment rows: each segment = one row with left explanation + right code
+  const codeLines = useMemo(() => code.split('\n'), [code]);
+
+  const segmentRows = useMemo(() => {
+    if (segments.length === 0) return [];
+    const rows: { type: 'gap' | 'segment'; startLine: number; endLine: number; segIndex?: number; code: string }[] = [];
+
+    let prevEnd = 0;
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      // Gap before this segment
+      if (seg.startLine - 1 > prevEnd) {
+        const gapCode = codeLines.slice(prevEnd, seg.startLine - 1).join('\n');
+        rows.push({ type: 'gap', startLine: prevEnd + 1, endLine: seg.startLine - 1, code: gapCode });
+      }
+      // Segment code
+      const segCode = codeLines.slice(seg.startLine - 1, seg.endLine).join('\n');
+      rows.push({ type: 'segment', startLine: seg.startLine, endLine: seg.endLine, segIndex: i, code: segCode });
+      prevEnd = seg.endLine;
+    }
+    // Trailing gap
+    if (prevEnd < codeLines.length) {
+      const gapCode = codeLines.slice(prevEnd).join('\n');
+      rows.push({ type: 'gap', startLine: prevEnd + 1, endLine: codeLines.length, code: gapCode });
+    }
+    return rows;
+  }, [segments, codeLines]);
+
+  // Code file: single scroll, per-segment rows
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', background: 'var(--bg)' }}>
       {header}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Left: Explanations / AST */}
-        <div ref={leftRef} style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
-          <div style={{ padding: `0 16px` }}>
-          {codeTab === 'explain' ? (<>
-          {segments.length === 0 && (
+      {codeTab === 'explain' ? (
+        <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>
+          {segments.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
               <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
               {t('analyzing')}
             </div>
-          )}
-          {segments.map((seg, i) => {
-            const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-            const explanation = explanations[i];
-            const prevEndLine = i > 0 ? segments[i - 1].endLine : 0;
-            const gapLines = seg.startLine - prevEndLine - (i > 0 ? 1 : 0);
-            const marginTop = i === 0
-              ? CODE_TOP_PAD + (seg.startLine - 1) * LINE_HEIGHT
-              : Math.max(0, gapLines) * LINE_HEIGHT;
-            return (
-              <div key={i} style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', marginBottom: 10, background: `${color}10`, marginTop }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, color }}>{seg.title}</span>
-                  <span style={{ fontSize: 11, opacity: 0.6 }}>L{seg.startLine}–{seg.endLine}</span>
-                </div>
-                {explanation ? (
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
-                    <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
+          ) : (
+            segmentRows.map((row, ri) => {
+              if (row.type === 'gap') {
+                return (
+                  <div key={`gap-${ri}`} style={{ display: 'flex' }}>
+                    <div style={{ width: '40%' }} />
+                    <div style={{ flex: 1 }}>
+                      <SyntaxHighlighter
+                        language={language} style={oneDark} showLineNumbers
+                        startingLineNumber={row.startLine}
+                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+                      >
+                        {row.code}
+                      </SyntaxHighlighter>
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>{t('analyzingSeg')}</div>
-                )}
+                );
+              }
+
+              const i = row.segIndex!;
+              const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+              const explanation = explanations[i];
+              return (
+                <div key={`seg-${ri}`} style={{ display: 'flex', borderBottom: `1px solid ${color}20` }}>
+                  {/* Left: explanation card */}
+                  <div style={{ width: '40%', padding: '12px 16px', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                    <div style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', background: `${color}10`, flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, color }}>{segments[i].title}</span>
+                        <span style={{ fontSize: 11, opacity: 0.6 }}>L{segments[i].startLine}–{segments[i].endLine}</span>
+                      </div>
+                      {explanation ? (
+                        <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
+                          <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>{t('analyzingSeg')}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Right: code lines for this segment */}
+                  <div style={{ flex: 1 }}>
+                    <SyntaxHighlighter
+                      language={language} style={oneDark} showLineNumbers wrapLines
+                      startingLineNumber={row.startLine}
+                      lineProps={(lineNum) => {
+                        const realLine = row.startLine + lineNum - 1;
+                        return {
+                          style: {
+                            display: 'block',
+                            borderLeft: `3px solid ${color}`,
+                            paddingLeft: 8,
+                            background: realLine === highlightLine ? `${color}30` : `${color}08`,
+                          },
+                        } as React.HTMLAttributes<HTMLElement>;
+                      }}
+                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
+                    >
+                      {row.code}
+                    </SyntaxHighlighter>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          {quality && <QualityCard quality={quality} />}
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+          {astNodes.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
+          ) : astNodes.map((node, i) => {
+            const color = AST_COLORS[node.type] || '#8b8b8b';
+            return (
+              <div key={i} onClick={() => setHighlightLine(node.startLine)}
+                style={{ padding: '6px 10px', marginBottom: 3, borderRadius: 6, borderLeft: `3px solid ${color}`, background: `${color}15`, cursor: 'pointer', fontSize: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 500, color }}>{node.name}</span>
+                  <span style={{ fontSize: 10, color: 'var(--text)' }}>L{node.startLine}</span>
+                </div>
+                <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
               </div>
             );
           })}
-          {quality && <QualityCard quality={quality} />}
-          </>) : (
-            <div style={{ padding: '12px 0' }}>
-              {astNodes.length === 0 ? (
-                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
-              ) : astNodes.map((node, i) => {
-                const color = AST_COLORS[node.type] || '#8b8b8b';
-                return (
-                  <div key={i} onClick={() => setHighlightLine(node.startLine)}
-                    style={{ padding: '6px 10px', marginBottom: 3, borderRadius: 6, borderLeft: `3px solid ${color}`, background: `${color}15`, cursor: 'pointer', fontSize: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 500, color }}>{node.name}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text)' }}>L{node.startLine}</span>
-                    </div>
-                    <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          </div>
         </div>
-        <div ref={(el) => { codeRef.current = el; rightRef.current = el; }} style={{ flex: 1, position: 'relative', overflow: 'auto' }}>
-          {code && (
-            <VirtualCodeView code={code} language={language} segments={segments} highlightLine={highlightLine} SEGMENT_COLORS={SEGMENT_COLORS} />
-          )}
-          {selection && (
-            <div style={{ position: 'fixed', top: selection.rect.top - 40, left: selection.rect.left - 60, background: '#21262d', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', display: 'flex', gap: 2, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-              <button onClick={() => { setShowAskModal(true); setSelection(null); }} title={t('askAI')}
-                style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-              </button>
-              <button onClick={() => { navigator.clipboard.writeText(selection.text); setSelection(null); }} title={t('copy')}
-                style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-              </button>
-            </div>
-          )}
+      )}
+
+      {selection && (
+        <div style={{ position: 'fixed', top: selection.rect.top - 40, left: selection.rect.left - 60, background: '#21262d', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', display: 'flex', gap: 2, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+          <button onClick={() => { setShowAskModal(true); setSelection(null); }} title={t('askAI')}
+            style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+          </button>
+          <button onClick={() => { navigator.clipboard.writeText(selection.text); setSelection(null); }} title={t('copy')}
+            style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+          </button>
         </div>
-      </div>
+      )}
 
       {showAskModal && selection && (
         <AskModal projectId={projectId} filePath={filePath} selectedCode={selection.text} startLine={selection.startLine} endLine={selection.endLine} onClose={() => setShowAskModal(false)} />
