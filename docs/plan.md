@@ -100,26 +100,23 @@
 - 如果 `ddl-auto: update` 未生效需要手动 ALTER TABLE
 </todo>
 
-<todo>
+<done>
 ### 导入后 sidebar 默认折叠
-- 上传或 GitHub 导入项目后，进入项目页时 sidebar 应默认折叠
-- `ProjectPage.tsx`: 在 `loadProject` 或导航时设置 `sidebarCollapsed = true`
-</todo>
+- `ProjectPage.tsx`: `loadProject` 中设置 `setSidebarCollapsed(true)`
+- 上传/GitHub 导入后进入项目页自动折叠
+</done>
 
-<doing>
+<done>
 ### 解释块与代码对齐 + 同步滚动
-- 核心问题：左侧有 header（文件名+tabs），右侧代码区没有，导致 scroll 起点不对齐
-- 方案：右侧代码区顶部也加一个与左侧等高的 header（文件信息栏）
-- 然后两侧用行号映射实现同步滚动
-- Markdown 预览/源码也要同步滚动（按百分比同步）
-</doing>
+- CodeViewPanel header 改为全宽（`flexDirection: column`），左右两侧 scroll 起点一致
+- 左右面板按 scroll ratio 同步滚动，用 `syncingScroll` ref 防止循环触发
+- Markdown 预览/源码也按百分比同步滚动
+</done>
 
-<todo>
+<done>
 ### 解释块与代码同步滚动
-- 当前只做了顶部对齐（marginTop），没有做滚动联动
-- 左侧滚动时右侧代码区应同步跟随，反之亦然
-- 需要监听两侧 scroll 事件，根据行号映射同步
-</todo>
+- 已合并到上方「对齐+同步滚动」任务中完成
+</done>
 
 <todo>
 ### Redis 缓存（未开始）
