@@ -492,7 +492,7 @@ export default function ProjectPage() {
         {/* Main Content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {selectedPath ? (
-            <CodeViewPanel projectId={projectId} filePath={selectedPath} onClose={() => setSelectedPath(undefined)} />
+            <CodeViewPanel key={selectedPath} projectId={projectId} filePath={selectedPath} onClose={() => setSelectedPath(undefined)} />
           ) : (
             <div style={{ flex: 1, overflow: tab === 'chat' ? 'hidden' : 'auto' }}>
               {tab === 'overview' ? (
