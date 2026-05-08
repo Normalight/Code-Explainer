@@ -113,13 +113,12 @@
 </done>
 
 <doing>
-### 解释块与代码严格对齐（新方案）
-- 核心思路：每个 segment 渲染为一行（flex row），左侧解释卡片 + 右侧对应代码行
+### 解释块与代码严格对齐（新方案）✅ 已完成待验证
+- 每个 segment 渲染为一行 flex row: 左解释卡片(40%) + 右对应代码行(60%)
 - 单滚动容器，不需要同步滚动
-- 每行高度 = max(解释高度, 代码高度)，矮的一侧自动补间距
-- 顶部和底部严格对齐
-- segment 之间的代码（gap）渲染为代码行，无解释卡片
-- 使用 SyntaxHighlighter 的 startingLineNumber 保持行号连续
+- 顶部和底部严格对齐（flex 行高度 = max(左, 右)）
+- segment 间的 gap 代码渲染为纯代码行（无解释卡片）
+- 用 SyntaxHighlighter per-segment + startingLineNumber 保持行号连续
 </doing>
 
 <todo>
