@@ -2,6 +2,10 @@ import type { FileTreeNode, ProjectInfo, ProgressInfo } from '../types';
 
 const API_BASE = '/api/projects';
 
+function encodeFilePath(filePath: string): string {
+  return filePath.split('/').map(encodeURIComponent).join('/');
+}
+
 export async function listProjects(): Promise<ProjectInfo[]> {
   const res = await fetch(API_BASE);
   if (!res.ok) throw new Error(`Failed to list projects: ${res.status}`);
@@ -60,7 +64,7 @@ export async function getFileTree(projectId: number): Promise<FileTreeNode> {
 }
 
 export async function getFileContent(projectId: number, filePath: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/${projectId}/files/${filePath}`);
+  const res = await fetch(`${API_BASE}/${projectId}/files/${encodeFilePath(filePath)}`);
   if (!res.ok) throw new Error(`Failed to load file: ${res.status}`);
   return res.text();
 }

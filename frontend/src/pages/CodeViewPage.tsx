@@ -95,6 +95,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [splitRatio, setSplitRatio] = useState(() => Number(localStorage.getItem('split-ratio')) || 0.4);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const codeRef = useRef<HTMLDivElement>(null);
   const activeSegmentRef = useRef(0);
@@ -115,8 +116,9 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     setExplanations({});
     setQuality(null);
     setAnalyzing(false);
+    setLoadError(null);
     activeSegmentRef.current = 0;
-    getFileContent(projectId, filePath).then(setCode).catch(console.error);
+    getFileContent(projectId, filePath).then(c => { setCode(c); }).catch(e => setLoadError(e.message));
     setLanguage(detectLanguage(filePath));
     if (isCode) {
       getAst(projectId, filePath).then(setAstNodes).catch(() => setAstNodes([]));
@@ -261,9 +263,13 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     return (
       <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
         <div ref={codeRef} style={{ flex: 1, overflow: 'auto', padding: '16px 24px' }}>
-          {isImage ? (
+          {loadError ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
+              {loadError}
+            </div>
+          ) : isImage ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: '100%' }}>
-              <img src={`/api/projects/${projectId}/files/${filePath}`} alt={filePath} style={{ maxWidth: '100%', borderRadius: 6 }} />
+              <img src={`/api/projects/${projectId}/files/${filePath.split('/').map(encodeURIComponent).join('/')}`} alt={filePath} style={{ maxWidth: '100%', borderRadius: 6 }} />
             </div>
           ) : code ? (
             <pre style={{ margin: 0, padding: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono, monospace)' }}>
@@ -339,7 +345,11 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
 
       {codeTab === 'explain' ? (
         <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>
-          {!analyzing && segments.length === 0 ? (
+          {loadError ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
+              {loadError}
+            </div>
+          ) : !analyzing && segments.length === 0 ? (
             // No analysis yet — show code only (full width)
             code ? (
               <SyntaxHighlighter
