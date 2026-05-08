@@ -40,6 +40,8 @@ const CODE_EXTENSIONS = new Set([
   'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'go', 'rs', 'rb', 'c', 'cpp', 'h',
   'cs', 'kt', 'swift', 'php', 'scala', 'sh', 'bash', 'sql', 'lua', 'r',
   'dart', 'zig', 'nim', 'ex', 'exs', 'erl', 'hs', 'ml', 'jl', 'vue', 'svelte',
+  'html', 'htm', 'json', 'css', 'xml', 'yaml', 'yml', 'toml', 'ini', 'conf',
+  'properties', 'gradle', 'cmake', 'makefile', 'dockerfile',
 ]);
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp']);
