@@ -7,6 +7,7 @@ import com.codeexplainer.repository.ProjectRepository;
 import com.codeexplainer.service.AskService;
 import com.codeexplainer.service.ExplanationService;
 import com.codeexplainer.service.FileService;
+import com.codeexplainer.service.RagService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -30,6 +31,7 @@ class AskControllerTest {
     @MockBean private AskService askService;
     @MockBean private FileService fileService;
     @MockBean private ExplanationService explanationService;
+    @MockBean private RagService ragService;
 
     @Test
     void ask_projectNotFound_returns404() throws Exception {

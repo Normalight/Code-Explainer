@@ -1,8 +1,10 @@
 package com.codeexplainer.controller;
 
 import com.codeexplainer.model.Project;
+import com.codeexplainer.repository.ExplanationCacheRepository;
 import com.codeexplainer.repository.ProjectFileRepository;
 import com.codeexplainer.repository.ProjectRepository;
+import com.codeexplainer.service.ExplanationCacheService;
 import com.codeexplainer.service.ExplanationService;
 import com.codeexplainer.service.FileService;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,12 @@ class StructureControllerTest {
 
     @MockBean
     private FileService fileService;
+
+    @MockBean
+    private ExplanationCacheRepository explanationCacheRepository;
+
+    @MockBean
+    private ExplanationCacheService explanationCacheService;
 
     @Test
     void structure_projectNotFound_returns404() throws Exception {

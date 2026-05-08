@@ -34,6 +34,9 @@ public class ProjectFile {
     @Column(nullable = false)
     private Boolean indexed = false;
 
+    @Column(nullable = false)
+    private Boolean analyzable = false;
+
     public enum AnalysisStatus {
         PENDING, ANALYZING, DONE
     }

@@ -1,17 +1,19 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { I18nProvider } from './i18n';
 import ProjectPage from './pages/ProjectPage';
-import CodeViewPage from './pages/CodeViewPage';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/projects" replace />} />
-        <Route path="/projects" element={<ProjectPage />} />
-        <Route path="/projects/:projectId" element={<ProjectPage />} />
-        <Route path="/projects/:projectId/files/*" element={<CodeViewPage />} />
-      </Routes>
-    </BrowserRouter>
+    <I18nProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<ProjectPage />} />
+          <Route path="/projects" element={<ProjectPage />} />
+          <Route path="/projects/:projectId" element={<ProjectPage />} />
+          <Route path="/projects/:projectId/files/*" element={<ProjectPage />} />
+        </Routes>
+      </BrowserRouter>
+    </I18nProvider>
   );
 }
 

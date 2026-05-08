@@ -2,8 +2,10 @@ package com.codeexplainer.controller;
 
 import com.codeexplainer.model.Project;
 import com.codeexplainer.model.ProjectFile;
+import com.codeexplainer.repository.ExplanationCacheRepository;
 import com.codeexplainer.repository.ProjectFileRepository;
 import com.codeexplainer.repository.ProjectRepository;
+import com.codeexplainer.service.ExplanationCacheService;
 import com.codeexplainer.service.ExplanationService;
 import com.codeexplainer.service.FileService;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,12 @@ class ProgressControllerTest {
 
     @MockBean
     private FileService fileService;
+
+    @MockBean
+    private ExplanationCacheRepository explanationCacheRepository;
+
+    @MockBean
+    private ExplanationCacheService explanationCacheService;
 
     @Test
     void progress_returnsStats() throws Exception {

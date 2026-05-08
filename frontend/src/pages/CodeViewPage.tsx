@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getFileContent, getExplainUrl, getQuality, getAst } from '../api';
 import AskModal from '../components/AskModal';
+import VirtualCodeView from '../components/VirtualCodeView';
 import type { SegmentInfo, QualityAssessment } from '../types';
+import { useI18n } from '../i18n';
 
 const SEGMENT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
@@ -19,6 +18,28 @@ const AST_COLORS: Record<string, string> = {
   class: '#3b82f6', struct: '#3b82f6', interface: '#8b5cf6',
   variable: '#f59e0b',
 };
+
+const CODE_EXTENSIONS = new Set([
+  'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'go', 'rs', 'rb', 'c', 'cpp', 'h',
+  'cs', 'kt', 'swift', 'php', 'scala', 'sh', 'bash', 'sql', 'lua', 'r',
+  'dart', 'zig', 'nim', 'ex', 'exs', 'erl', 'hs', 'ml', 'jl', 'vue', 'svelte',
+]);
+
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp']);
+
+function isMarkdownFile(filePath: string): boolean {
+  return filePath.toLowerCase().endsWith('.md') || filePath.toLowerCase().endsWith('.markdown');
+}
+
+function isCodeFile(filePath: string): boolean {
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  return CODE_EXTENSIONS.has(ext);
+}
+
+function isImageFile(filePath: string): boolean {
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  return IMAGE_EXTENSIONS.has(ext);
+}
 
 interface Selection {
   text: string;
@@ -35,11 +56,14 @@ interface AstNode {
 
 type CodeTab = 'explain' | 'ast';
 
-export default function CodeViewPage() {
-  const { projectId: pid, '*': filePath } = useParams<{ projectId: string; '*': string }>();
-  const projectId = Number(pid);
-  const navigate = useNavigate();
+interface Props {
+  projectId: number;
+  filePath: string;
+  onClose: () => void;
+}
 
+export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
+  const { t } = useI18n();
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('');
   const [segments, setSegments] = useState<SegmentInfo[]>([]);
@@ -52,36 +76,50 @@ export default function CodeViewPage() {
   const [highlightLine, setHighlightLine] = useState<number | null>(null);
 
   const codeRef = useRef<HTMLDivElement>(null);
+  const activeSegmentRef = useRef(0);
+
+  const isCode = isCodeFile(filePath);
+  const isImage = isImageFile(filePath);
 
   useEffect(() => {
     if (!projectId || !filePath) return;
+    setCode('');
+    setSegments([]);
+    setExplanations({});
+    setQuality(null);
+    activeSegmentRef.current = 0;
     getFileContent(projectId, filePath).then(setCode).catch(console.error);
     setLanguage(detectLanguage(filePath));
-    getAst(projectId, filePath).then(setAstNodes).catch(() => setAstNodes([]));
+    if (isCode) {
+      getAst(projectId, filePath).then(setAstNodes).catch(() => setAstNodes([]));
+    }
   }, [projectId, filePath]);
 
   useEffect(() => {
-    if (!projectId || !filePath || !code) return;
+    if (!projectId || !filePath || !code || !isCode) return;
 
     const es = new EventSource(getExplainUrl(projectId, filePath));
     es.addEventListener('segment_start', (e) => {
       setSegments((prev) => [...prev, JSON.parse(e.data)]);
     });
     es.addEventListener('content', (e) => {
-      setExplanations((prev) => {
-        const idx = Object.keys(prev).length;
-        return { ...prev, [idx]: (prev[idx] || '') + e.data };
-      });
+      const segIdx = activeSegmentRef.current;
+      setExplanations((prev) => ({
+        ...prev,
+        [segIdx]: (prev[segIdx] || '') + e.data,
+      }));
     });
-    es.addEventListener('segment_end', () => {});
+    es.addEventListener('segment_end', () => {
+      activeSegmentRef.current += 1;
+    });
     es.onerror = () => {
       es.close();
-      getQuality(projectId, filePath!)
+      getQuality(projectId, filePath)
         .then((text) => { try { setQuality(JSON.parse(text)); } catch {} })
         .catch(() => {});
     };
     return () => es.close();
-  }, [projectId, filePath, code]);
+  }, [projectId, filePath, code, isCode]);
 
   const handleTextSelection = useCallback(() => {
     const sel = window.getSelection();
@@ -89,23 +127,18 @@ export default function CodeViewPage() {
       setSelection(null);
       return;
     }
-
     const range = sel.getRangeAt(0);
     if (!codeRef.current.contains(range.commonAncestorContainer)) {
       setSelection(null);
       return;
     }
-
     const text = sel.toString().trim();
     if (!text) { setSelection(null); return; }
 
-    // Try to determine line numbers from line number elements
     const codeContainer = codeRef.current.querySelector('code');
     if (!codeContainer) { setSelection(null); return; }
-
     const lines = codeContainer.querySelectorAll('.react-syntax-highlighter-line-number');
     let startLine = 1, endLine = 1;
-
     for (let i = 0; i < lines.length; i++) {
       const lineEl = lines[i].parentElement;
       if (lineEl && range.intersectsNode(lineEl)) {
@@ -113,14 +146,8 @@ export default function CodeViewPage() {
         endLine = i + 1;
       }
     }
-
     const rect = range.getBoundingClientRect();
-    setSelection({
-      text,
-      startLine,
-      endLine,
-      rect: { top: rect.top - 8, left: rect.left + rect.width / 2 },
-    });
+    setSelection({ text, startLine, endLine, rect: { top: rect.top - 8, left: rect.left + rect.width / 2 } });
   }, []);
 
   useEffect(() => {
@@ -128,45 +155,109 @@ export default function CodeViewPage() {
     return () => document.removeEventListener('mouseup', handleTextSelection);
   }, [handleTextSelection]);
 
-  const handleBack = () => navigate(`/projects/${projectId}`);
+  const LINE_HEIGHT = 20.8;
+  const CODE_TOP_PAD = 16;
 
-  const handleAskAI = () => {
-    setShowAskModal(true);
-    setSelection(null);
-  };
+  // Header bar shared by all file types
+  const header = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 2 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+      </button>
+      <span style={{ fontWeight: 600, color: 'var(--text-h)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{filePath}</span>
+      {isCode && (
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, flexShrink: 0 }}>
+          <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('explain')}</button>
+          <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('ast')}</button>
+        </div>
+      )}
+    </div>
+  );
 
-  if (!filePath) return null;
+  // Non-code file rendering
+  if (!isCode) {
+    const isMd = isMarkdownFile(filePath);
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)' }}>
-      {/* Left: Explanations */}
-      <div style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <button onClick={handleBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 4 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-          </button>
-          <span style={{ fontWeight: 600, color: 'var(--text-h)', fontSize: 14 }}>{filePath}</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
-            <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '4px 10px', borderRadius: 4, fontSize: 12 }}>Explain</button>
-            <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '4px 10px', borderRadius: 4, fontSize: 12 }}>AST</button>
+    // Markdown: left preview, right source
+    if (isMd && code) {
+      return (
+        <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
+          {/* Left: Markdown preview */}
+          <div style={{ width: '50%', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {header}
+            <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
+              <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text)' }}>
+                <Markdown remarkPlugins={[remarkGfm]}>{code}</Markdown>
+              </div>
+            </div>
+          </div>
+          {/* Right: Raw source */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text)', fontWeight: 500, background: 'var(--code-bg)' }}>
+              {t('source')}
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <VirtualCodeView code={code} language="markdown" segments={[]} highlightLine={null} SEGMENT_COLORS={SEGMENT_COLORS} />
+            </div>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      );
+    }
+
+    // Other non-code files: single panel
+    return (
+      <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {header}
+          <div ref={codeRef} style={{ flex: 1, overflow: 'auto', padding: '16px 24px' }}>
+            {isImage ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: '100%' }}>
+                <img src={`/api/projects/${projectId}/files/${filePath}`} alt={filePath} style={{ maxWidth: '100%', borderRadius: 6 }} />
+              </div>
+            ) : code ? (
+              <pre style={{ margin: 0, padding: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'var(--font-mono, monospace)' }}>
+                {code}
+              </pre>
+            ) : (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
+                <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                {t('analyzing')}
+              </div>
+            )}
           </div>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    );
+  }
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+  // Code file: left-right split with Explain/AST tabs
+  return (
+    <div style={{ display: 'flex', flex: 1, height: '100%', background: 'var(--bg)' }}>
+      {/* Left: Explanations / AST */}
+      <div style={{ width: '40%', borderRight: '1px solid var(--border)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        {header}
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: `0 16px` }}>
         {codeTab === 'explain' ? (<>
         {segments.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
-            <div className="spinner" style={{ width: 24, height: 24, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-            Analyzing...
+            <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+            {t('analyzing')}
           </div>
         )}
-
         {segments.map((seg, i) => {
           const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
           const explanation = explanations[i];
+          const prevEndLine = i > 0 ? segments[i - 1].endLine : 0;
+          const gapLines = seg.startLine - prevEndLine - (i > 0 ? 1 : 0);
+          const marginTop = i === 0
+            ? CODE_TOP_PAD + (seg.startLine - 1) * LINE_HEIGHT
+            : Math.max(0, gapLines) * LINE_HEIGHT;
           return (
-            <div key={i} style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '12px 16px', marginBottom: 12, background: `${color}10` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div key={i} style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', marginBottom: 10, background: `${color}10`, marginTop }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontWeight: 600, fontSize: 13, color }}>{seg.title}</span>
                 <span style={{ fontSize: 11, opacity: 0.6 }}>L{seg.startLine}–{seg.endLine}</span>
               </div>
@@ -175,200 +266,90 @@ export default function CodeViewPage() {
                   <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>Analyzing...</div>
+                <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>{t('analyzingSeg')}</div>
               )}
             </div>
           );
         })}
         {quality && <QualityCard quality={quality} />}
         </>) : (
-          /* AST tab */
-          <div>
+          <div style={{ padding: '12px 0' }}>
             {astNodes.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>No AST nodes found</div>
-            ) : (
-              <div>
-                {astNodes.map((node, i) => {
-                  const color = AST_COLORS[node.type] || '#8b8b8b';
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => setHighlightLine(node.startLine)}
-                      style={{
-                        padding: '8px 12px',
-                        marginBottom: 4,
-                        borderRadius: 6,
-                        borderLeft: `3px solid ${color}`,
-                        background: `${color}15`,
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = `${color}30`)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = `${color}15`)}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 500, color }}>{node.name}</span>
-                        <span style={{ fontSize: 11, color: 'var(--text)' }}>L{node.startLine}</span>
-                      </div>
-                      <span style={{ fontSize: 11, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
+            ) : astNodes.map((node, i) => {
+              const color = AST_COLORS[node.type] || '#8b8b8b';
+              return (
+                <div key={i} onClick={() => setHighlightLine(node.startLine)}
+                  style={{ padding: '6px 10px', marginBottom: 3, borderRadius: 6, borderLeft: `3px solid ${color}`, background: `${color}15`, cursor: 'pointer', fontSize: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 500, color }}>{node.name}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text)' }}>L{node.startLine}</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase' }}>{node.type}</span>
+                </div>
+              );
+            })}
           </div>
         )}
         </div>
       </div>
-      <div ref={codeRef} style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+      <div ref={codeRef} style={{ flex: 1, position: 'relative', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
         {code && (
-          <SyntaxHighlighter
-            language={language}
-            style={oneDark}
-            showLineNumbers
-            wrapLines
-            lineProps={(lineNum) => {
-              const segIndex = segments.findIndex((s) => lineNum >= s.startLine && lineNum <= s.endLine);
-              const color = segIndex >= 0 ? SEGMENT_COLORS[segIndex % SEGMENT_COLORS.length] : undefined;
-              return {
-                style: {
-                  display: 'block',
-                  borderLeft: color ? `3px solid ${color}` : '3px solid transparent',
-                  paddingLeft: color ? 8 : 11,
-                  background: lineNum === highlightLine ? '#6366f130' : color ? `${color}10` : 'transparent',
-                },
-                ref: (el: HTMLElement | null) => {
-                  if (el && lineNum === highlightLine) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                },
-              } as React.HTMLAttributes<HTMLElement>;
-            }}
-            customStyle={{ margin: 0, padding: '16px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
-          >
-            {code}
-          </SyntaxHighlighter>
+          <VirtualCodeView code={code} language={language} segments={segments} highlightLine={highlightLine} SEGMENT_COLORS={SEGMENT_COLORS} />
         )}
-
-        {/* Floating toolbar */}
         {selection && (
-          <div style={{
-            position: 'fixed',
-            top: selection.rect.top - 40,
-            left: selection.rect.left - 60,
-            background: '#21262d',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            padding: '4px 4px',
-            display: 'flex',
-            gap: 2,
-            zIndex: 100,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          }}>
-            <ToolbarButton onClick={handleAskAI} title="Ask AI">
+          <div style={{ position: 'fixed', top: selection.rect.top - 40, left: selection.rect.left - 60, background: '#21262d', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', display: 'flex', gap: 2, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+            <button onClick={() => { setShowAskModal(true); setSelection(null); }} title={t('askAI')}
+              style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-            </ToolbarButton>
-            <ToolbarButton onClick={() => { navigator.clipboard.writeText(selection.text); setSelection(null); }} title="Copy code">
+            </button>
+            <button onClick={() => { navigator.clipboard.writeText(selection.text); setSelection(null); }} title={t('copy')}
+              style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '6px 8px', borderRadius: 4 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-            </ToolbarButton>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Ask Modal */}
       {showAskModal && selection && (
-        <AskModal
-          projectId={projectId}
-          filePath={filePath}
-          selectedCode={selection.text}
-          startLine={selection.startLine}
-          endLine={selection.endLine}
-          onClose={() => setShowAskModal(false)}
-        />
+        <AskModal projectId={projectId} filePath={filePath} selectedCode={selection.text} startLine={selection.startLine} endLine={selection.endLine} onClose={() => setShowAskModal(false)} />
       )}
-      {showAskModal && !selection && (() => { setShowAskModal(false); return null; })()}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 }
 
-function ToolbarButton({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        background: 'none',
-        border: 'none',
-        color: 'var(--text)',
-        cursor: 'pointer',
-        padding: '6px 8px',
-        borderRadius: 4,
-        display: 'flex',
-        alignItems: 'center',
-        fontSize: 11,
-        gap: 4,
-        transition: 'background 0.15s',
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--border)')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-    >
-      {children}
-    </button>
-  );
-}
-
 function QualityCard({ quality }: { quality: QualityAssessment }) {
+  const { t } = useI18n();
   const GRADE_STYLES: Record<string, { bg: string; color: string }> = {
-    A: { bg: '#22c55e20', color: '#22c55e' },
-    B: { bg: '#3b82f620', color: '#3b82f6' },
-    C: { bg: '#f59e0b20', color: '#f59e0b' },
-    D: { bg: '#ef444420', color: '#ef4444' },
+    A: { bg: '#22c55e20', color: '#22c55e' }, B: { bg: '#3b82f620', color: '#3b82f6' },
+    C: { bg: '#f59e0b20', color: '#f59e0b' }, D: { bg: '#ef444420', color: '#ef4444' },
   };
   const style = GRADE_STYLES[quality.grade] || GRADE_STYLES.C;
-
   return (
-    <div style={{ marginTop: 24, padding: 16, borderRadius: 8, background: 'var(--code-bg)', border: '1px solid var(--border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 8, fontSize: 18, fontWeight: 700, background: style.bg, color: style.color }}>
-          {quality.grade}
-        </span>
+    <div style={{ marginTop: 20, padding: 14, borderRadius: 8, background: 'var(--code-bg)', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, fontSize: 16, fontWeight: 700, background: style.bg, color: style.color }}>{quality.grade}</span>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-h)' }}>Quality Assessment</div>
+          <div style={{ fontWeight: 600, fontSize: 13 }}>{t('qualityAssessment')}</div>
           <div style={{ fontSize: 12, color: 'var(--text)', marginTop: 2 }}>{quality.summary}</div>
         </div>
       </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
         {Object.entries(quality.scores).map(([key, val]) => (
-          <div key={key} style={{ fontSize: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text)', marginBottom: 2 }}>
-              <span style={{ textTransform: 'capitalize' }}>{key}</span>
-              <span>{val}/5</span>
-            </div>
-            <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${(val / 5) * 100}%`, background: 'var(--accent)', borderRadius: 2 }} />
-            </div>
+          <div key={key} style={{ fontSize: 11 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text)', marginBottom: 2 }}><span style={{ textTransform: 'capitalize' }}>{key}</span><span>{val}/5</span></div>
+            <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}><div style={{ height: '100%', width: `${(val / 5) * 100}%`, background: 'var(--accent)', borderRadius: 2 }} /></div>
           </div>
         ))}
       </div>
-
-      {quality.issues?.length > 0 && (
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-h)', marginBottom: 8 }}>Issues</div>
-          {quality.issues.map((issue, i) => (
-            <div key={i} style={{
-              fontSize: 12, padding: '6px 8px', marginBottom: 4, borderRadius: 4,
-              background: issue.severity === 'critical' ? '#ef444415' : issue.severity === 'warning' ? '#f59e0b15' : '#3b82f615',
-              borderLeft: `3px solid ${issue.severity === 'critical' ? '#ef4444' : issue.severity === 'warning' ? '#f59e0b' : '#3b82f6'}`,
-            }}>
-              <span style={{ fontWeight: 500, color: 'var(--text-h)' }}>{issue.title}</span>
-              <span style={{ color: 'var(--text)', marginLeft: 8 }}>L{issue.lineStart}–{issue.lineEnd}</span>
-              <div style={{ color: 'var(--text)', marginTop: 2 }}>{issue.description}</div>
-            </div>
-          ))}
+      {quality.issues?.length > 0 && quality.issues.map((issue, i) => (
+        <div key={i} style={{ fontSize: 11, padding: '4px 6px', marginBottom: 3, borderRadius: 4, background: issue.severity === 'critical' ? '#ef444415' : issue.severity === 'warning' ? '#f59e0b15' : '#3b82f615', borderLeft: `3px solid ${issue.severity === 'critical' ? '#ef4444' : issue.severity === 'warning' ? '#f59e0b' : '#3b82f6'}` }}>
+          <span style={{ fontWeight: 500 }}>{issue.title}</span> <span style={{ opacity: 0.6 }}>L{issue.lineStart}–{issue.lineEnd}</span>
+          <div style={{ opacity: 0.7, marginTop: 2 }}>{issue.description}</div>
         </div>
-      )}
+      ))}
     </div>
   );
 }

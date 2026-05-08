@@ -224,4 +224,12 @@ public class ExplanationService {
         }
         throw new RuntimeException("No JSON found in response");
     }
+
+    public String reviewCommit(String prompt) {
+        ChatClient chatClient = chatClientBuilder.build();
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+    }
 }

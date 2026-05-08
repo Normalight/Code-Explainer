@@ -6,6 +6,7 @@ import com.codeexplainer.repository.ProjectFileRepository;
 import com.codeexplainer.repository.ProjectRepository;
 import com.codeexplainer.service.AskService;
 import com.codeexplainer.service.FileService;
+import com.codeexplainer.service.RagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class AskController {
     private final ProjectFileRepository projectFileRepository;
     private final FileService fileService;
     private final AskService askService;
+    private final RagService ragService;
 
     @GetMapping(value = "/{id}/ask", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Object ask(@PathVariable Long id,
@@ -55,9 +57,10 @@ public class AskController {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             try {
+                String ragContext = ragService.searchAndBuildContext(id, question, 3);
                 String answer = askService.ask(
                         selectedCode.toString(), startLine, endLine,
-                        filePath, question, project.getName(), fullCode
+                        filePath, question, project.getName(), fullCode, ragContext
                 );
 
                 emitter.send(SseEmitter.event()

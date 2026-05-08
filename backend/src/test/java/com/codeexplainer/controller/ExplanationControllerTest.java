@@ -2,8 +2,10 @@ package com.codeexplainer.controller;
 
 import com.codeexplainer.model.Project;
 import com.codeexplainer.model.ProjectFile;
+import com.codeexplainer.repository.ExplanationCacheRepository;
 import com.codeexplainer.repository.ProjectFileRepository;
 import com.codeexplainer.repository.ProjectRepository;
+import com.codeexplainer.service.ExplanationCacheService;
 import com.codeexplainer.service.ExplanationService;
 import com.codeexplainer.service.FileService;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,6 +39,12 @@ class ExplanationControllerTest {
 
     @MockBean
     private FileService fileService;
+
+    @MockBean
+    private ExplanationCacheRepository explanationCacheRepository;
+
+    @MockBean
+    private ExplanationCacheService explanationCacheService;
 
     @Test
     void explain_projectNotFound_returns404() throws Exception {
@@ -90,8 +100,10 @@ class ExplanationControllerTest {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectFileRepository.findByProjectAndPath(project, "main.py")).thenReturn(Optional.of(file));
         when(fileService.getFileContent(1L, "main.py")).thenReturn("x = 1");
+        when(explanationCacheService.get(eq(1L), eq("main.py"), any())).thenReturn(Optional.empty());
         when(explanationService.buildQualityAssessmentPrompt("x = 1", "main.py", "Python"))
                 .thenReturn("{\"grade\":\"A\"}");
+        when(explanationService.reviewCommit(any())).thenReturn("{\"grade\":\"A\"}");
 
         mockMvc.perform(get("/api/projects/1/quality").param("filePath", "main.py"))
                 .andExpect(status().isOk());

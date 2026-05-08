@@ -19,6 +19,14 @@ public record CodeSegment(int startLine, int endLine, String title, String reaso
         }
     }
 
+    public static String toJsonArray(List<CodeSegment> segments) {
+        try {
+            return MAPPER.writeValueAsString(segments);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize segments: " + e.getMessage(), e);
+        }
+    }
+
     public static List<String> validate(List<CodeSegment> segments, int totalLines) {
         List<String> errors = new ArrayList<>();
 

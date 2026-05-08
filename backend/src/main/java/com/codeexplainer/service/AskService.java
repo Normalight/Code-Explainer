@@ -17,6 +17,12 @@ public class AskService {
     public String buildAskPrompt(String selectedCode, int startLine, int endLine,
                                   String filePath, String question,
                                   String projectName, String grepContext) {
+        return buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, "");
+    }
+
+    public String buildAskPrompt(String selectedCode, int startLine, int endLine,
+                                  String filePath, String question,
+                                  String projectName, String grepContext, String ragContext) {
         StringBuilder sb = new StringBuilder();
         sb.append("""
             你是一个代码解释助手。用户选中了一段代码并提出了一个问题，请用中文回答，技术术语保留英文。
@@ -34,11 +40,19 @@ public class AskService {
         if (grepContext != null && !grepContext.isBlank()) {
             sb.append("""
 
-                ## 相关代码上下文
+                ## 代码上下文
                 ```
                 %s
                 ```
                 """.formatted(grepContext));
+        }
+
+        if (ragContext != null && !ragContext.isBlank()) {
+            sb.append("""
+
+                ## 项目中相关的代码片段（语义搜索结果）
+                %s
+                """.formatted(ragContext));
         }
 
         sb.append("""
@@ -72,6 +86,19 @@ public class AskService {
                        String projectName, String fullCode) {
         String grepContext = extractCodeSurrounding(fullCode, startLine, endLine, 10);
         String prompt = buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext);
+
+        ChatClient chatClient = chatClientBuilder.build();
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+    }
+
+    public String ask(String selectedCode, int startLine, int endLine,
+                       String filePath, String question,
+                       String projectName, String fullCode, String ragContext) {
+        String grepContext = extractCodeSurrounding(fullCode, startLine, endLine, 10);
+        String prompt = buildAskPrompt(selectedCode, startLine, endLine, filePath, question, projectName, grepContext, ragContext);
 
         ChatClient chatClient = chatClientBuilder.build();
         return chatClient.prompt()

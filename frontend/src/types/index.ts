@@ -3,6 +3,8 @@ export interface FileTreeNode {
   type: 'file' | 'directory';
   language?: string;
   lineCount?: number;
+  analyzable?: boolean;
+  analysisStatus?: 'PENDING' | 'ANALYZING' | 'DONE';
   children?: FileTreeNode[];
 }
 
@@ -20,6 +22,8 @@ export interface ProgressInfo {
   total: number;
   completed: number;
   analyzing: number;
+  totalFiles: number;
+  skippedFiles: number;
 }
 
 export interface SegmentInfo {

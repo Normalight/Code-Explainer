@@ -46,7 +46,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Spring AI -->
+        <!-- Spring AI - OpenAI (DeepSeek via OpenAI-compatible API) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
@@ -56,7 +56,7 @@
         <!-- Chroma Vector Store -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-chroma-store</artifactId>
+            <artifactId>spring-ai-chroma-store-spring-boot-starter</artifactId>
             <version>1.0.0-M6</version>
         </dependency>
 
@@ -72,6 +72,88 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Tree-sitter (multi-language AST parsing) -->
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter</artifactId>
+            <version>0.26.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-python</artifactId>
+            <version>0.25.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-java</artifactId>
+            <version>0.23.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-javascript</artifactId>
+            <version>0.25.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-typescript</artifactId>
+            <version>0.23.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-tsx</artifactId>
+            <version>0.23.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-go</artifactId>
+            <version>0.25.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-rust</artifactId>
+            <version>0.23.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-c</artifactId>
+            <version>0.23.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-cpp</artifactId>
+            <version>0.23.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-css</artifactId>
+            <version>0.23.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-bash</artifactId>
+            <version>0.23.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-yaml</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-json</artifactId>
+            <version>0.24.8</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-ruby</artifactId>
+            <version>0.23.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.bonede</groupId>
+            <artifactId>tree-sitter-html</artifactId>
+            <version>0.23.2</version>
         </dependency>
 
         <!-- Test -->

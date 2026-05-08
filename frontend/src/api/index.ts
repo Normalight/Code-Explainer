@@ -2,6 +2,12 @@ import type { FileTreeNode, ProjectInfo, ProgressInfo } from '../types';
 
 const API_BASE = '/api/projects';
 
+export async function listProjects(): Promise<ProjectInfo[]> {
+  const res = await fetch(API_BASE);
+  if (!res.ok) throw new Error(`Failed to list projects: ${res.status}`);
+  return res.json();
+}
+
 export async function uploadProject(file: File): Promise<ProjectInfo> {
   return uploadProjectWithProgress(file, {});
 }
@@ -101,6 +107,70 @@ export async function getDependencies(projectId: number): Promise<{ nodes: { id:
   const res = await fetch(`${API_BASE}/${projectId}/dependencies`);
   if (!res.ok) throw new Error(`Failed to get dependencies: ${res.status}`);
   return res.json();
+}
+
+export function getExportUrl(projectId: number): string {
+  return `${API_BASE}/${projectId}/export`;
+}
+
+export async function searchCode(projectId: number, query: string): Promise<{ path: string; line: number; text: string }[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/search?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error(`Failed to search: ${res.status}`);
+  return res.json();
+}
+
+export async function importGitHub(url: string): Promise<ProjectInfo> {
+  const res = await fetch(`${API_BASE}/import-github`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw new Error(`Failed to import: ${res.status}`);
+  return res.json();
+}
+
+export interface SessionInfo {
+  sessionId: string;
+  title: string;
+  lastMessageTime: string;
+}
+
+export async function getChatSessions(projectId: number): Promise<SessionInfo[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/chat/sessions`);
+  if (!res.ok) throw new Error(`Failed to get sessions: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteChatSession(projectId: number, sessionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/${projectId}/chat/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to delete session: ${res.status}`);
+}
+
+export interface CommitInfo {
+  hash: string;
+  shortHash: string;
+  author: string;
+  email: string;
+  timestamp: number;
+  message: string;
+}
+
+export async function getCommits(projectId: number, limit = 50): Promise<CommitInfo[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/commits?limit=${limit}`);
+  if (!res.ok) throw new Error(`Failed to get commits: ${res.status}`);
+  return res.json();
+}
+
+export async function getCommitDiff(projectId: number, hash: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/${projectId}/commits/${hash}/diff`);
+  if (!res.ok) throw new Error(`Failed to get diff: ${res.status}`);
+  return res.json().then((d: { diff: string }) => d.diff);
+}
+
+export async function reviewCommit(projectId: number, hash: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/${projectId}/commits/${hash}/review`);
+  if (!res.ok) throw new Error(`Failed to review: ${res.status}`);
+  return res.json().then((d: { review: string }) => d.review);
 }
 
 export function askQuestion(projectId: number, filePath: string, startLine: number, endLine: number, question: string): Promise<string> {

@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -24,9 +25,10 @@ public class FileService {
 
     private final ProjectRepository projectRepository;
     private final ProjectFileRepository projectFileRepository;
+    private final RagService ragService;
 
-    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-    private static final long MAX_SINGLE_FILE_SIZE = 10 * 1024 * 1024; // 10MB per extracted file
+    private static final long MAX_FILE_SIZE = 500 * 1024 * 1024;
+    private static final long MAX_SINGLE_FILE_SIZE = 10 * 1024 * 1024;
     private static final int READ_BUFFER_SIZE = 8192;
 
     private static final Set<String> SKIP_EXTENSIONS = Set.of(
@@ -36,11 +38,26 @@ public class FileService {
             "tar", "gz", "7z", "rar", "bz2", "xz",
             "sqlite", "db", "h5", "hdf5", "parquet", "npy", "pkl", "pickle",
             "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-            "zip", "war", "ear", "node", "wasm"
+            "zip", "war", "ear", "node", "wasm", "lock", "map", "min.js", "min.css"
+    );
+
+    private static final Set<String> SKIP_DIRECTORIES = Set.of(
+            "node_modules", ".git", "__pycache__", ".idea", ".vs",
+            "dist", "build", "target", "out", ".next", ".nuxt",
+            "vendor", ".gradle", ".mvn", "venv", ".venv", "env",
+            ".tox", ".mypy_cache", ".pytest_cache", "coverage",
+            ".cache", ".sass-cache", "bin", "obj"
     );
 
     private static final Set<String> LARGE_TEXT_EXTENSIONS = Set.of(
             "csv", "tsv", "log", "txt"
+    );
+
+    private static final Set<String> SOURCE_CODE_EXTENSIONS = Set.of(
+            "py", "js", "ts", "jsx", "tsx", "java", "go", "rs", "rb", "php",
+            "c", "cpp", "h", "hpp", "cs", "swift", "kt", "scala", "sh", "bash",
+            "sql", "vue", "svelte", "ex", "exs", "erl", "clj", "hs", "ml", "mli",
+            "jl", "r", "R", "lua", "dart", "zig", "nim", "pl", "pm"
     );
 
     private static final Map<String, String> EXTENSION_LANGUAGE_MAP = Map.ofEntries(
@@ -66,10 +83,9 @@ public class FileService {
             projectName = projectName.substring(0, projectName.length() - 4);
         }
 
-        Path projectDir = Path.of(uploadDir, String.valueOf(System.currentTimeMillis()));
+        Path projectDir = Path.of(uploadDir, String.valueOf(System.currentTimeMillis())).normalize();
         Files.createDirectories(projectDir);
 
-        int[] fileCount = {0};
         try (var zis = new ZipInputStream(new BufferedInputStream(file.getInputStream(), READ_BUFFER_SIZE))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -104,7 +120,6 @@ public class FileService {
                         }
                     }
                 }
-                fileCount[0]++;
                 zis.closeEntry();
             }
         }
@@ -115,9 +130,42 @@ public class FileService {
         project.setZipPath(projectDir.toString());
         project = projectRepository.save(project);
 
-        scanAndSaveFiles(project, projectDir.toFile(), projectDir.toString());
+        scanAndSaveFiles(project, projectDir.toFile(), projectDir.toAbsolutePath().toString());
+        indexProjectAsync(project, projectDir.toFile(), projectDir.toAbsolutePath().toString());
 
         return project;
+    }
+
+    public Project importFromGitHub(String repoUrl, String uploadDir) throws IOException, InterruptedException {
+        String projectName = extractRepoName(repoUrl);
+
+        Path projectDir = Path.of(uploadDir, String.valueOf(System.currentTimeMillis())).normalize();
+        Files.createDirectories(projectDir);
+
+        ProcessBuilder pb = new ProcessBuilder("git", "clone", "--depth", "100", repoUrl, projectDir.toString());
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            String output = new String(process.getInputStream().readAllBytes());
+            throw new IOException("git clone failed: " + output);
+        }
+
+        Project project = new Project();
+        project.setName(projectName);
+        project.setUploadTime(LocalDateTime.now());
+        project.setZipPath(projectDir.toString());
+        project = projectRepository.save(project);
+
+        scanAndSaveFiles(project, projectDir.toFile(), projectDir.toString());
+        return project;
+    }
+
+    private String extractRepoName(String url) {
+        String cleaned = url.replaceAll("/+$", "");
+        int lastSlash = cleaned.lastIndexOf('/');
+        String name = lastSlash >= 0 ? cleaned.substring(lastSlash + 1) : cleaned;
+        return name.endsWith(".git") ? name.substring(0, name.length() - 4) : name;
     }
 
     public static boolean isDangerousEntry(String entryName) {
@@ -132,26 +180,45 @@ public class FileService {
         return SKIP_EXTENSIONS.contains(ext);
     }
 
+    public static boolean isSourceCodeFile(String name) {
+        if (name == null) return false;
+        String lowerName = name.toLowerCase();
+        if (lowerName.equals("dockerfile") || lowerName.equals("makefile") || lowerName.equals("rakefile")) return false;
+        if (lowerName.endsWith(".min.js") || lowerName.endsWith(".min.css")) return false;
+        String ext = getExtensionStatic(name);
+        return SOURCE_CODE_EXTENSIONS.contains(ext);
+    }
+
+    private boolean shouldSkipDirectory(String dirName) {
+        return SKIP_DIRECTORIES.contains(dirName) || dirName.startsWith(".");
+    }
+
     private void scanAndSaveFiles(Project project, File dir, String basePath) throws IOException {
         File[] children = dir.listFiles();
         if (children == null) return;
 
         for (File child : children) {
             if (child.isDirectory()) {
+                if (shouldSkipDirectory(child.getName())) continue;
                 scanAndSaveFiles(project, child, basePath);
             } else if (child.isFile() && !isHiddenOrBinary(child.getName())) {
                 String relativePath = child.getAbsolutePath().substring(basePath.length() + 1);
-                String content = Files.readString(child.toPath());
-                String language = detectLanguage(child.getName());
-                int lineCount = content.split("\n", -1).length;
+                try {
+                    String content = Files.readString(child.toPath());
+                    String language = detectLanguage(child.getName());
+                    int lineCount = content.split("\n", -1).length;
+                    boolean analyzable = isSourceCodeFile(child.getName());
 
-                ProjectFile pf = new ProjectFile();
-                pf.setProject(project);
-                pf.setPath(relativePath);
-                pf.setContentHash(hashContent(content));
-                pf.setLanguage(language);
-                pf.setLineCount(lineCount);
-                projectFileRepository.save(pf);
+                    ProjectFile pf = new ProjectFile();
+                    pf.setProject(project);
+                    pf.setPath(relativePath);
+                    pf.setContentHash(hashContent(content));
+                    pf.setLanguage(language);
+                    pf.setLineCount(lineCount);
+                    pf.setAnalyzable(analyzable);
+                    projectFileRepository.save(pf);
+                } catch (Exception ignored) {
+                }
             }
         }
     }
@@ -201,7 +268,7 @@ public class FileService {
     }
 
     private FileTreeNode buildTree(String projectName, List<ProjectFile> files) {
-        FileTreeNode root = new FileTreeNode(projectName, "directory", null, null, new ArrayList<>());
+        FileTreeNode root = new FileTreeNode(projectName, "directory", null, null, false, new ArrayList<>());
 
         for (ProjectFile pf : files) {
             String[] parts = pf.getPath().split("/");
@@ -222,6 +289,7 @@ public class FileService {
                             isFile ? "file" : "directory",
                             isFile ? pf.getLanguage() : null,
                             isFile ? pf.getLineCount() : null,
+                            isFile ? pf.getAnalyzable() : false,
                             isFile ? null : new ArrayList<>()
                     );
                     current.children().add(child);
@@ -231,7 +299,23 @@ public class FileService {
                 }
             }
         }
+
+        sortTree(root);
         return root;
+    }
+
+    private void sortTree(FileTreeNode node) {
+        if (node.children() == null) return;
+        node.children().sort((a, b) -> {
+            // Directories first, then files
+            if (!a.type().equals(b.type())) {
+                return a.type().equals("directory") ? -1 : 1;
+            }
+            return a.name().compareToIgnoreCase(b.name());
+        });
+        for (FileTreeNode child : node.children()) {
+            sortTree(child);
+        }
     }
 
     public String getFileContent(Long projectId, String filePath) {
@@ -242,9 +326,44 @@ public class FileService {
             throw new RuntimeException("File not found: " + filePath);
         }
         try {
-            return Files.readString(fullPath);
+            byte[] bytes = Files.readAllBytes(fullPath);
+            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read file", e);
+        }
+    }
+
+    private void indexProjectAsync(Project project, File projectDir, String basePath) {
+        if (!ragService.isAvailable()) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                List<RagService.ProjectChunk> allChunks = new ArrayList<>();
+                chunkAllFiles(projectDir, basePath, allChunks);
+                if (!allChunks.isEmpty()) {
+                    ragService.indexProject(project.getId(), allChunks);
+                }
+            } catch (Exception e) {
+                // Log but don't fail upload
+            }
+        });
+    }
+
+    private void chunkAllFiles(File dir, String basePath, List<RagService.ProjectChunk> allChunks) throws IOException {
+        File[] children = dir.listFiles();
+        if (children == null) return;
+        for (File child : children) {
+            if (child.isDirectory()) {
+                if (shouldSkipDirectory(child.getName())) continue;
+                chunkAllFiles(child, basePath, allChunks);
+            } else if (child.isFile() && !isHiddenOrBinary(child.getName())) {
+                String relativePath = child.getAbsolutePath().substring(basePath.length() + 1);
+                String language = detectLanguage(child.getName());
+                try {
+                    String content = Files.readString(child.toPath());
+                    List<RagService.ProjectChunk> fileChunks = ragService.chunkFile(relativePath, language, content);
+                    allChunks.addAll(fileChunks);
+                } catch (Exception ignored) {}
+            }
         }
     }
 
@@ -253,6 +372,7 @@ public class FileService {
             String type,
             String language,
             Integer lineCount,
+            Boolean analyzable,
             List<FileTreeNode> children
     ) {}
 }

@@ -30,4 +30,7 @@ public class Project {
     private Integer totalIssuesCritical = 0;
     private Integer totalIssuesWarning = 0;
     private Integer totalIssuesSuggestion = 0;
+
+    @Column(columnDefinition = "TEXT")
+    private String structureAnalysis;
 }
