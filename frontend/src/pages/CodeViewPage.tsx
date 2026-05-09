@@ -9,7 +9,7 @@ const codeTheme = {
   'pre[class*="language-"]': { ...(oneDark as Record<string, Record<string, string>>)['pre[class*="language-"]'], background: '#1a1b26' },
   'code[class*="language-"]': { ...(oneDark as Record<string, Record<string, string>>)['code[class*="language-"]'], background: 'transparent' },
 };
-import { getFileContent, getExplainUrl, getQuality, getAst } from '../api';
+import { getFileContent, getExplainUrl, getQuality } from '../api';
 import AskModal from '../components/AskModal';
 import type { SegmentInfo, QualityAssessment } from '../types';
 import { useI18n } from '../i18n';
@@ -19,22 +19,6 @@ const SEGMENT_COLORS = [
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
   '#06b6d4', '#3b82f6',
 ];
-
-const AST_COLORS: Record<string, string> = {
-  function: '#22c55e', method: '#22c55e',
-  class: '#3b82f6', struct: '#3b82f6', interface: '#8b5cf6',
-  variable: '#f59e0b', element: '#f97316', property: '#14b8a6',
-};
-
-const AST_SUPPORTED_EXTENSIONS = new Set([
-  'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'go', 'rs', 'rb', 'c', 'cpp', 'h',
-  'css', 'sh', 'bash', 'json', 'html',
-]);
-
-function isAstSupported(filePath: string): boolean {
-  const ext = filePath.split('.').pop()?.toLowerCase() || '';
-  return AST_SUPPORTED_EXTENSIONS.has(ext);
-}
 
 const CODE_EXTENSIONS = new Set([
   'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'go', 'rs', 'rb', 'c', 'cpp', 'h',
@@ -67,16 +51,6 @@ interface Selection {
   rect: { top: number; left: number };
 }
 
-interface AstNode {
-  type: string;
-  name: string;
-  startLine: number;
-  endLine: number;
-  children: AstNode[];
-}
-
-type CodeTab = 'explain' | 'ast';
-
 interface Props {
   projectId: number;
   filePath: string;
@@ -92,9 +66,6 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [quality, setQuality] = useState<QualityAssessment | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
-  const [codeTab, setCodeTab] = useState<CodeTab>('explain');
-  const [astNodes, setAstNodes] = useState<AstNode[]>([]);
-  const [highlightLine, setHighlightLine] = useState<number | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [splitRatio, setSplitRatio] = useState(() => Number(localStorage.getItem('split-ratio')) || 0.4);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -128,11 +99,6 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     activeSegmentRef.current = 0;
     getFileContent(projectId, filePath).then(c => { setCode(c); }).catch(e => setLoadError(e.message));
     setLanguage(detectLanguage(filePath));
-    if (isCode) {
-      getAst(projectId, filePath).then(setAstNodes).catch(() => setAstNodes([]));
-    } else {
-      setAstNodes([]);
-    }
   }, [projectId, filePath]);
 
   const startAnalysis = useCallback(() => {
@@ -158,6 +124,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     es.onerror = () => {
       es.close();
       eventSourceRef.current = null;
+      setAnalyzing(false);
       getQuality(projectId, filePath, lang)
         .then((text) => { try { setQuality(JSON.parse(text)); } catch {} })
         .catch(() => {});
@@ -327,18 +294,16 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const leftWidth = `${splitRatio * 100}%`;
 
   // Code file: single scroll, per-segment rows
+  const showSplit = analyzing || segments.length > 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', background: 'var(--bg)' }}>
-      {/* Sub-header: tabs + analyze button */}
+      {/* Sub-header: analyze button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <button onClick={() => setCodeTab('explain')} style={{ background: codeTab === 'explain' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'explain' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('explain')}</button>
-        {isAstSupported(filePath) && (
-          <button onClick={() => setCodeTab('ast')} style={{ background: codeTab === 'ast' ? 'var(--accent-bg)' : 'none', border: 'none', color: codeTab === 'ast' ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', padding: '3px 8px', borderRadius: 4, fontSize: 11 }}>{t('ast')}</button>
-        )}
-        {codeTab === 'explain' && !analyzing && segments.length === 0 && code && (
+        {!analyzing && segments.length === 0 && code && (
           <button onClick={startAnalysis}
             style={{
-              marginLeft: 8, background: 'var(--accent)', color: '#fff', border: 'none',
+              background: 'var(--accent)', color: '#fff', border: 'none',
               borderRadius: 4, padding: '3px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 500,
               display: 'flex', alignItems: 'center', gap: 4,
             }}>
@@ -347,7 +312,7 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
           </button>
         )}
         {analyzing && (
-          <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <div className="spinner" style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             {t('analyzing')}
           </span>
@@ -355,133 +320,123 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
         <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text)', opacity: 0.4 }}>{codeLines.length} lines</span>
       </div>
 
-      {codeTab === 'explain' ? (
-        <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>
-          {loadError ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
-              {loadError}
-            </div>
-          ) : !analyzing && segments.length === 0 ? (
-            // No analysis yet — show code only (full width)
-            code ? (
-              <SyntaxHighlighter
-                language={language} style={codeTheme} showLineNumbers
-                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
-              >
-                {code}
-              </SyntaxHighlighter>
-            ) : (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
-                <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                {t('analyzing')}
-              </div>
-            )
+      <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>
+        {loadError ? (
+          <div style={{ padding: 40, textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
+            {loadError}
+          </div>
+        ) : !showSplit ? (
+          // No analysis yet — show code only (full width)
+          code ? (
+            <SyntaxHighlighter
+              language={language} style={codeTheme} showLineNumbers
+              customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+            >
+              {code}
+            </SyntaxHighlighter>
           ) : (
-            segmentRows.map((row, ri) => {
-              if (row.type === 'gap') {
-                return (
-                  <div key={`gap-${ri}`} style={{ display: 'flex', minWidth: 0 }}>
-                    <div style={{ width: leftWidth, flexShrink: 0 }} />
-                    <div style={{ width: 3, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-                      <SyntaxHighlighter
-                        language={language} style={codeTheme} showLineNumbers
-                        startingLineNumber={row.startLine}
-                        customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minWidth: 0 }}
-                      >
-                        {row.code}
-                      </SyntaxHighlighter>
-                    </div>
-                  </div>
-                );
-              }
-
-              const i = row.segIndex!;
-              const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-              const explanation = explanations[i];
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
+              <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              {t('analyzing')}
+            </div>
+          )
+        ) : segmentRows.length > 0 ? (
+          // Segments available — show per-segment split layout
+          segmentRows.map((row, ri) => {
+            if (row.type === 'gap') {
               return (
-                <div key={`seg-${ri}`} style={{ display: 'flex', minWidth: 0, borderBottom: `1px solid ${color}20` }}>
-                  {/* Left: explanation card */}
-                  <div style={{ width: leftWidth, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                    <div style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', background: `${color}10`, flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: 13, color }}>{segments[i].title}</span>
-                        <span style={{ fontSize: 11, opacity: 0.6 }}>L{segments[i].startLine}–{segments[i].endLine}</span>
-                      </div>
-                      {explanation ? (
-                        <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
-                          <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>{t('analyzingSeg')}</div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Draggable divider */}
-                  <div
-                    onMouseDown={handleSplitResize}
-                    style={{
-                      width: 3, flexShrink: 0, cursor: 'col-resize',
-                      background: '#1a1b26', transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  />
-                  {/* Right: code lines */}
+                <div key={`gap-${ri}`} style={{ display: 'flex', minWidth: 0 }}>
+                  <div style={{ width: leftWidth, flexShrink: 0 }} />
+                  <div style={{ width: 3, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
                     <SyntaxHighlighter
-                      language={language} style={codeTheme} showLineNumbers wrapLines
+                      language={language} style={codeTheme} showLineNumbers
                       startingLineNumber={row.startLine}
-                      lineProps={(lineNum) => {
-                        const realLine = row.startLine + lineNum - 1;
-                        return {
-                          style: {
-                            display: 'block',
-                            borderLeft: `3px solid ${color}`,
-                            paddingLeft: 8,
-                            background: realLine === highlightLine ? `${color}30` : undefined,
-                          },
-                        } as React.HTMLAttributes<HTMLElement>;
-                      }}
-                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
+                      customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minWidth: 0 }}
                     >
                       {row.code}
                     </SyntaxHighlighter>
                   </div>
                 </div>
               );
-            })
-          )}
-          {quality && <QualityCard quality={quality} />}
-        </div>
-      ) : (
-        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
-          {astNodes.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>{t('noAst')}</div>
-          ) : (
-            <AstTreeView nodes={astNodes} onNodeClick={(startLine, endLine) => {
-              setHighlightLine(startLine);
-              setCodeTab('explain');
-              setTimeout(() => {
-                const container = codeRef.current;
-                if (!container) return;
-                const lines = container.querySelectorAll('.react-syntax-highlighter-line-number');
-                for (const line of lines) {
-                  const lineEl = line.parentElement;
-                  if (lineEl) {
-                    const lineNum = parseInt(line.textContent || '0', 10);
-                    if (lineNum === startLine) {
-                      lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      break;
-                    }
-                  }
-                }
-                setHighlightLine(null);
-              }, 300);
-            }} />
-          )}
-        </div>
-      )}
+            }
+
+            const i = row.segIndex!;
+            const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
+            const explanation = explanations[i];
+            return (
+              <div key={`seg-${ri}`} style={{ display: 'flex', minWidth: 0, borderBottom: `1px solid ${color}20` }}>
+                {/* Left: explanation card */}
+                <div style={{ width: leftWidth, padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                  <div style={{ borderLeft: `3px solid ${color}`, borderRadius: 6, padding: '10px 14px', background: `${color}10`, flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13, color }}>{segments[i].title}</span>
+                      <span style={{ fontSize: 11, opacity: 0.6 }}>L{segments[i].startLine}–{segments[i].endLine}</span>
+                    </div>
+                    {explanation ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
+                        <Markdown remarkPlugins={[remarkGfm]}>{explanation}</Markdown>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: 'var(--text)', opacity: 0.5 }}>
+                        <div className="spinner" style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />
+                        {t('analyzingSeg')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Draggable divider */}
+                <div
+                  onMouseDown={handleSplitResize}
+                  style={{
+                    width: 3, flexShrink: 0, cursor: 'col-resize',
+                    background: '#1a1b26', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                />
+                {/* Right: code lines */}
+                <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
+                  <SyntaxHighlighter
+                    language={language} style={codeTheme} showLineNumbers wrapLines
+                    startingLineNumber={row.startLine}
+                    lineProps={() => ({
+                      style: {
+                        display: 'block',
+                        borderLeft: `3px solid ${color}`,
+                        paddingLeft: 8,
+                      },
+                    } as React.HTMLAttributes<HTMLElement>)}
+                    customStyle={{ margin: 0, padding: '4px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
+                  >
+                    {row.code}
+                  </SyntaxHighlighter>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          // Analyzing but no segments yet — show split with loading placeholder
+          <div style={{ display: 'flex', minHeight: '100%' }}>
+            <div style={{ width: leftWidth, flexShrink: 0, padding: '16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text)', opacity: 0.5, fontSize: 12 }}>
+                <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                {t('analyzing')}
+              </div>
+            </div>
+            <div style={{ width: 3, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
+              <SyntaxHighlighter
+                language={language} style={codeTheme} showLineNumbers
+                customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26' }}
+              >
+                {code}
+              </SyntaxHighlighter>
+            </div>
+          </div>
+        )}
+        {quality && <QualityCard quality={quality} />}
+      </div>
 
       {selection && (
         <div style={{ position: 'fixed', top: selection.rect.top - 40, left: selection.rect.left - 60, background: '#21262d', border: '1px solid var(--border)', borderRadius: 6, padding: '4px', display: 'flex', gap: 2, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
@@ -535,68 +490,6 @@ function QualityCard({ quality }: { quality: QualityAssessment }) {
           <div style={{ opacity: 0.7, marginTop: 2 }}>{issue.description}</div>
         </div>
       ))}
-    </div>
-  );
-}
-
-const AST_TYPE_ICONS: Record<string, string> = {
-  class: 'C', interface: 'I', struct: 'S', enum: 'E',
-  function: 'ƒ', method: 'M', variable: 'V',
-  trait: 'T', impl: '▶', type: 'T',
-  element: '<>', property: ':',
-};
-
-function AstTreeView({ nodes, onNodeClick }: { nodes: AstNode[]; onNodeClick: (startLine: number, endLine: number) => void }) {
-  return (
-    <div style={{ fontSize: 13 }}>
-      {nodes.map((node, i) => (
-        <AstTreeNode key={`${node.type}-${node.name}-${i}`} node={node} depth={0} onNodeClick={onNodeClick} />
-      ))}
-    </div>
-  );
-}
-
-function AstTreeNode({ node, depth, onNodeClick }: { node: AstNode; depth: number; onNodeClick: (startLine: number, endLine: number) => void }) {
-  const [expanded, setExpanded] = useState(depth < 1);
-  const hasChildren = node.children && node.children.length > 0;
-  const color = AST_COLORS[node.type] || '#8b8b8b';
-  const icon = AST_TYPE_ICONS[node.type] || '?';
-
-  return (
-    <div>
-      <div
-        onClick={() => onNodeClick(node.startLine, node.endLine)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '4px 8px', borderRadius: 4, cursor: 'pointer',
-          background: `${color}10`, borderLeft: `3px solid ${color}`,
-          marginLeft: depth * 20, marginBottom: 2,
-        }}
-      >
-        {hasChildren ? (
-          <span onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            style={{ cursor: 'pointer', color: 'var(--text)', fontSize: 10, width: 14, textAlign: 'center', flexShrink: 0, userSelect: 'none' }}>
-            {expanded ? '▼' : '▶'}
-          </span>
-        ) : (
-          <span style={{ width: 14, flexShrink: 0 }} />
-        )}
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: 4, background: `${color}25`, color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
-          {icon}
-        </span>
-        <span style={{ fontWeight: 500, color, flex: 1 }}>{node.name}</span>
-        <span style={{ fontSize: 10, color: 'var(--text)', opacity: 0.5, flexShrink: 0 }}>
-          L{node.startLine}{node.endLine > node.startLine ? `–${node.endLine}` : ''}
-        </span>
-        <span style={{ fontSize: 10, color: 'var(--text)', textTransform: 'uppercase', opacity: 0.4 }}>{node.type}</span>
-      </div>
-      {hasChildren && expanded && (
-        <div style={{ marginLeft: depth * 20 + 10, borderLeft: '1px solid var(--border)', paddingLeft: 0 }}>
-          {node.children.map((child, i) => (
-            <AstTreeNode key={`${child.type}-${child.name}-${i}`} node={child} depth={depth + 1} onNodeClick={onNodeClick} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

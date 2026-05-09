@@ -4,7 +4,7 @@ import FileTree from '../components/FileTree';
 import UploadZone from '../components/UploadZone';
 import CodeViewPanel from './CodeViewPage';
 import SettingsModal from '../components/SettingsModal';
-import { getFileTree, getStructure, getDependencies, getExportUrl, importGitHub, getCommits, getCommitDiff, reviewCommit, getChatSessions, deleteChatSession, listProjects } from '../api';
+import { getFileTree, getStructure, getDependencies, importGitHub, getCommits, getCommitDiff, reviewCommit, getChatSessions, deleteChatSession, listProjects } from '../api';
 import type { CommitInfo, SessionInfo } from '../api';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -497,22 +497,6 @@ export default function ProjectPage() {
             <div style={{ flex: 1, overflow: tab === 'chat' ? 'hidden' : 'auto' }}>
               {tab === 'overview' ? (
                 <div style={{ padding: '32px 40px' }}>
-                  <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'flex-end' }}>
-                    <a
-                      href={getExportUrl(projectId)}
-                      download
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500,
-                        background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border)',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-                      {t('exportReport')}
-                    </a>
-                  </div>
-
                   {structure ? (
                     <StructureDisplay structure={structure} onLocateInTree={handleLocateInTree} t={t} />
                   ) : (

@@ -67,7 +67,13 @@ public class ExplanationController {
                 for (CodeSegment segment : segments) {
                     String[] lines = code.split("\n", -1);
                     StringBuilder segmentCode = new StringBuilder();
+                    int segLineCount = segment.endLine() - segment.startLine() + 1;
                     for (int i = segment.startLine() - 1; i < segment.endLine() && i < lines.length; i++) {
+                        if (segLineCount > 300 && i - segment.startLine() + 1 >= 200 && segment.endLine() - i > 50) {
+                            segmentCode.append("    ... (").append(segLineCount - 250).append(" lines omitted)\n");
+                            i = segment.endLine() - 50 - 1;
+                            continue;
+                        }
                         segmentCode.append(lines[i]);
                         if (i < segment.endLine() - 1) segmentCode.append("\n");
                     }
@@ -79,7 +85,8 @@ public class ExplanationController {
                                     + ",\"title\":\"" + escapeJson(segment.title()) + "\"}"
                                     , MediaType.APPLICATION_JSON));
 
-                    String explanation = explanationService.explainSegment(
+                    StringBuilder fullExplanation = new StringBuilder();
+                    explanationService.streamSegment(
                             segmentCode.toString(),
                             segment.startLine(),
                             segment.endLine(),
@@ -88,12 +95,17 @@ public class ExplanationController {
                             project.getName(),
                             "source file",
                             lang
-                    );
-                    explanationList.add(explanation);
-
-                    emitter.send(SseEmitter.event()
-                            .name("content")
-                            .data(explanation, MediaType.TEXT_PLAIN));
+                    ).doOnNext(chunk -> {
+                        fullExplanation.append(chunk);
+                        try {
+                            emitter.send(SseEmitter.event()
+                                    .name("content")
+                                    .data(chunk, MediaType.TEXT_PLAIN));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }).blockLast();
+                    explanationList.add(fullExplanation.toString());
 
                     emitter.send(SseEmitter.event()
                             .name("segment_end")
