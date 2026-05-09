@@ -11,6 +11,8 @@ Thumbs.db
 # Claude / Superpowers plugin cache
 .superpowers/
 .claude/
+CLAUDE.md
+docs/
 
 # Backend
 backend/target/
