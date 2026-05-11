@@ -17,7 +17,7 @@ class ExplanationServiceStructureTest {
             requirements.txt (5 lines)
             """;
 
-        String prompt = service.buildStructurePrompt("test-project", fileTree);
+        String prompt = service.buildStructurePrompt("test-project", fileTree, "zh");
 
         assertTrue(prompt.contains("test-project"));
         assertTrue(prompt.contains("main.py"));

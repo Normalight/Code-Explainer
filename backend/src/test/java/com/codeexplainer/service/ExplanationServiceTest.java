@@ -13,7 +13,7 @@ class ExplanationServiceTest {
     @Test
     void segmentCode_withNullChatClient_usesFallback() {
         String code = "import os\n\ndef main():\n    pass";
-        List<CodeSegment> segments = explanationService.segmentCode(code, "main.py", "Python");
+        List<CodeSegment> segments = explanationService.segmentCode(code, "main.py", "Python", "zh");
 
         assertNotNull(segments);
         assertEquals(2, segments.size());
@@ -65,7 +65,7 @@ class ExplanationServiceTest {
 
     @Test
     void buildQualityAssessmentPrompt_containsCode() {
-        String prompt = explanationService.buildQualityAssessmentPrompt("x = 1", "app.py", "Python");
+        String prompt = explanationService.buildQualityAssessmentPrompt("x = 1", "app.py", "Python", "zh");
 
         assertTrue(prompt.contains("app.py"));
         assertTrue(prompt.contains("Python"));

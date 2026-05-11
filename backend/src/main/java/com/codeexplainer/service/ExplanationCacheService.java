@@ -6,7 +6,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,4 +54,17 @@ public class ExplanationCacheService {
     }
 
     public record CachedExplanation(String segments, String explanations, String quality) {}
+
+    /**
+     * Returns a map of file path → quality JSON string for all cached entries in a project.
+     */
+    public Map<String, String> getAllQualityAssessments(Long projectId) {
+        return cacheRepository.findByProjectId(projectId).stream()
+                .filter(c -> c.getQualityAssessment() != null)
+                .collect(Collectors.toMap(
+                        ExplanationCache::getPath,
+                        ExplanationCache::getQualityAssessment,
+                        (a, b) -> b
+                ));
+    }
 }

@@ -60,11 +60,11 @@ class StructureControllerTest {
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(fileService.getFileTree(1L)).thenReturn(
-                new FileService.FileTreeNode("src", "directory", null, null, java.util.List.of(
-                        new FileService.FileTreeNode("main.py", "file", "Python", 50, java.util.List.of())
+                new FileService.FileTreeNode("src", "directory", null, null, false, java.util.List.of(
+                        new FileService.FileTreeNode("main.py", "file", "Python", 50, true, java.util.List.of())
                 ))
         );
-        when(explanationService.analyzeProjectStructure(eq("test-project"), anyString()))
+        when(explanationService.analyzeProjectStructure(eq("test-project"), anyString(), eq("zh")))
                 .thenReturn("{\"projectType\":\"Flask web app\"}");
 
         mockMvc.perform(get("/api/projects/1/structure"))

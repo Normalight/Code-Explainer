@@ -6,6 +6,7 @@ import com.codeexplainer.repository.ExplanationCacheRepository;
 import com.codeexplainer.repository.ProjectFileRepository;
 import com.codeexplainer.repository.ProjectRepository;
 import com.codeexplainer.service.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,14 +19,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -201,6 +200,95 @@ public class ExplanationController {
         cacheService.saveQuality(id, filePath, contentHash, qualityResult);
 
         return ResponseEntity.ok(qualityResult);
+    }
+
+    @GetMapping("/{id}/quality-summary")
+    public ResponseEntity<Map<String, Object>> qualitySummary(@PathVariable Long id) {
+        Project project = projectRepository.findById(id).orElse(null);
+        if (project == null) return ResponseEntity.notFound().build();
+
+        List<ProjectFile> files = projectFileRepository.findByProject(project);
+        Map<String, String> qualityMap = cacheService.getAllQualityAssessments(id);
+        ObjectMapper mapper = new ObjectMapper();
+
+        int fileCountAnalyzed = 0;
+        int criticalCount = 0, warningCount = 0, suggestionCount = 0;
+        double readabilitySum = 0, complexitySum = 0, conventionSum = 0, securitySum = 0;
+        String worstGrade = "N/A";
+        List<Map<String, Object>> topIssues = new ArrayList<>();
+
+        Map<String, Integer> gradeOrder = Map.of("A", 4, "B", 3, "C", 2, "D", 1);
+
+        for (ProjectFile file : files) {
+            String qualityJson = qualityMap.get(file.getPath());
+            if (qualityJson == null || !Boolean.TRUE.equals(file.getAnalyzable())) continue;
+
+            try {
+                Map<String, Object> parsed = mapper.readValue(qualityJson,
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                fileCountAnalyzed++;
+
+                String grade = (String) parsed.getOrDefault("grade", "N/A");
+                if (grade != null && !"N/A".equals(grade)) {
+                    int order = gradeOrder.getOrDefault(grade, 0);
+                    int currentWorst = "N/A".equals(worstGrade) ? 99 : gradeOrder.getOrDefault(worstGrade, 0);
+                    if (order < currentWorst) {
+                        worstGrade = grade;
+                    }
+                }
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> scores = (Map<String, Object>) parsed.getOrDefault("scores", Map.of());
+                readabilitySum += toDouble(scores.get("readability"));
+                complexitySum += toDouble(scores.get("complexity"));
+                conventionSum += toDouble(scores.get("convention"));
+                securitySum += toDouble(scores.get("security"));
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> issues = (List<Map<String, Object>>) parsed.getOrDefault("issues", List.of());
+                for (Map<String, Object> issue : issues) {
+                    String severity = (String) issue.getOrDefault("severity", "");
+                    switch (severity) {
+                        case "critical" -> criticalCount++;
+                        case "warning" -> warningCount++;
+                        default -> suggestionCount++;
+                    }
+
+                    Map<String, Object> topIssue = new LinkedHashMap<>();
+                    topIssue.put("file", file.getPath());
+                    topIssue.put("severity", severity);
+                    topIssue.put("title", issue.getOrDefault("title", ""));
+                    topIssues.add(topIssue);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Sort top issues by severity: critical first, then warning, then suggestion
+        Map<String, Integer> severityOrder = Map.of("critical", 0, "warning", 1, "suggestion", 2);
+        topIssues.sort(Comparator.comparingInt(
+                i -> severityOrder.getOrDefault((String) i.getOrDefault("severity", ""), 99)));
+        if (topIssues.size() > 10) topIssues = topIssues.subList(0, 10);
+
+        double avgRead = fileCountAnalyzed > 0 ? readabilitySum / fileCountAnalyzed : 0;
+        double avgComp = fileCountAnalyzed > 0 ? complexitySum / fileCountAnalyzed : 0;
+        double avgConv = fileCountAnalyzed > 0 ? conventionSum / fileCountAnalyzed : 0;
+        double avgSec = fileCountAnalyzed > 0 ? securitySum / fileCountAnalyzed : 0;
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("overallGrade", worstGrade);
+        result.put("fileCountAnalyzed", fileCountAnalyzed);
+        result.put("criticalCount", criticalCount);
+        result.put("warningCount", warningCount);
+        result.put("suggestionCount", suggestionCount);
+        result.put("averageScores", Map.of(
+                "readability", avgRead,
+                "complexity", avgComp,
+                "convention", avgConv,
+                "security", avgSec
+        ));
+        result.put("topIssues", topIssues);
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}/progress")
@@ -423,6 +511,11 @@ public class ExplanationController {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"")
                 .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+    }
+
+    private double toDouble(Object value) {
+        if (value instanceof Number n) return n.doubleValue();
+        return 0;
     }
 
     private List<String> parseStringArray(String json) {

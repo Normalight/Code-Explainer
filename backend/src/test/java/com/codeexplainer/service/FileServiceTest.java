@@ -152,7 +152,7 @@ class FileServiceTest {
 
     @Test
     void getFileContent_throwsWhenFileNotFound() {
-        var project = projectRepository.save(new Project(null, "test", java.time.LocalDateTime.now(), "/tmp/test", null, 0, 0, 0));
+        var project = projectRepository.save(new Project(null, "test", java.time.LocalDateTime.now(), "/tmp/test", null, 0, 0, 0, null, null));
 
         assertThrows(RuntimeException.class, () -> fileService.getFileContent(project.getId(), "nonexistent.py"));
     }

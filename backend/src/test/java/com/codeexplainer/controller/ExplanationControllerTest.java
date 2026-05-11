@@ -101,7 +101,7 @@ class ExplanationControllerTest {
         when(projectFileRepository.findByProjectAndPath(project, "main.py")).thenReturn(Optional.of(file));
         when(fileService.getFileContent(1L, "main.py")).thenReturn("x = 1");
         when(explanationCacheService.get(eq(1L), eq("main.py"), any())).thenReturn(Optional.empty());
-        when(explanationService.buildQualityAssessmentPrompt("x = 1", "main.py", "Python"))
+        when(explanationService.buildQualityAssessmentPrompt("x = 1", "main.py", "Python", "zh"))
                 .thenReturn("{\"grade\":\"A\"}");
         when(explanationService.reviewCommit(any())).thenReturn("{\"grade\":\"A\"}");
 
