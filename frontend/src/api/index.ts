@@ -1,4 +1,4 @@
-import type { FileTreeNode, ProjectInfo, ProgressInfo, ProjectQualitySummary } from '../types';
+import type { FileTreeNode, ProjectInfo, ProgressInfo, ProjectQualitySummary, AstNode } from '../types';
 
 const API_BASE = '/api/projects';
 
@@ -97,7 +97,7 @@ export function getExplainUrl(projectId: number, filePath: string, lang = 'zh'):
   return `${API_BASE}/${projectId}/explain?filePath=${encodeURIComponent(filePath)}&lang=${encodeURIComponent(lang)}`;
 }
 
-export async function getAst(projectId: number, filePath: string): Promise<{ type: string; name: string; startLine: number }[]> {
+export async function getAst(projectId: number, filePath: string): Promise<AstNode[]> {
   const res = await fetch(`${API_BASE}/${projectId}/ast?filePath=${encodeURIComponent(filePath)}`);
   if (!res.ok) throw new Error(`Failed to get AST: ${res.status}`);
   return res.json();

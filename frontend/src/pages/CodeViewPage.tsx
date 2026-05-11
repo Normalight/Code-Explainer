@@ -9,9 +9,10 @@ const codeTheme = {
   'pre[class*="language-"]': { ...(oneDark as Record<string, Record<string, string>>)['pre[class*="language-"]'], background: '#1a1b26' },
   'code[class*="language-"]': { ...(oneDark as Record<string, Record<string, string>>)['code[class*="language-"]'], background: 'transparent' },
 };
-import { getFileContent, getExplainUrl, getQuality } from '../api';
+import { getFileContent, getExplainUrl, getQuality, getAst } from '../api';
 import AskModal from '../components/AskModal';
-import type { SegmentInfo, QualityAssessment } from '../types';
+import AstTreeView from '../components/AstTreeView';
+import type { SegmentInfo, QualityAssessment, AstNode } from '../types';
 import { useI18n } from '../i18n';
 
 const SEGMENT_COLORS = [
@@ -64,6 +65,9 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
   const [segments, setSegments] = useState<SegmentInfo[]>([]);
   const [explanations, setExplanations] = useState<Record<number, string>>({});
   const [quality, setQuality] = useState<QualityAssessment | null>(null);
+  const [astNodes, setAstNodes] = useState<AstNode[] | null>(null);
+  const [astTab, setAstTab] = useState(false);
+  const [astLoading, setAstLoading] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -94,12 +98,37 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
     setSegments([]);
     setExplanations({});
     setQuality(null);
+    setAstNodes(null);
+    setAstTab(false);
+    setAstLoading(false);
     setAnalyzing(false);
     setLoadError(null);
     activeSegmentRef.current = 0;
     getFileContent(projectId, filePath).then(c => { setCode(c); }).catch(e => setLoadError(e.message));
     setLanguage(detectLanguage(filePath));
   }, [projectId, filePath]);
+
+  const loadAst = useCallback(() => {
+    if (!projectId || !filePath || astLoading || astNodes !== null) return;
+    setAstLoading(true);
+    setAstTab(true);
+    getAst(projectId, filePath)
+      .then((nodes) => setAstNodes(nodes))
+      .catch(() => setAstNodes([]))
+      .finally(() => setAstLoading(false));
+  }, [projectId, filePath, astLoading, astNodes]);
+
+  const handleAstNodeClick = useCallback((startLine: number) => {
+    const codeContainer = codeRef.current?.querySelector('code');
+    if (!codeContainer) return;
+    const lines = codeContainer.querySelectorAll('.react-syntax-highlighter-line-number');
+    if (lines.length > 0 && startLine <= lines.length) {
+      const targetLine = lines[startLine - 1];
+      if (targetLine) {
+        targetLine.parentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, []);
 
   const startAnalysis = useCallback(() => {
     if (!projectId || !filePath || !code || !isCode || analyzing) return;
@@ -298,20 +327,29 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', background: 'var(--bg)' }}>
-      {/* Sub-header: analyze button */}
+      {/* Sub-header: tabs + actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        {!analyzing && segments.length === 0 && code && (
-          <button onClick={startAnalysis}
-            style={{
-              background: 'var(--accent)', color: '#fff', border: 'none',
-              borderRadius: 4, padding: '3px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: 4,
-            }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
-            {t('startAnalysis')}
-          </button>
-        )}
-        {analyzing && (
+        {/* Tab: Explain */}
+        <button onClick={() => { if (!astTab) startAnalysis(); else setAstTab(false); }}
+          style={{
+            background: !astTab ? 'var(--accent-bg)' : 'none', border: 'none',
+            borderBottom: !astTab ? '2px solid var(--accent)' : '2px solid transparent',
+            color: !astTab ? 'var(--accent)' : 'var(--text)', padding: '4px 10px',
+            cursor: 'pointer', fontSize: 11, fontWeight: !astTab ? 600 : 400,
+          }}>
+          {t('explain')}
+        </button>
+        {/* Tab: AST */}
+        <button onClick={loadAst}
+          style={{
+            background: astTab ? 'var(--accent-bg)' : 'none', border: 'none',
+            borderBottom: astTab ? '2px solid var(--accent)' : '2px solid transparent',
+            color: astTab ? 'var(--accent)' : 'var(--text)', padding: '4px 10px',
+            cursor: 'pointer', fontSize: 11, fontWeight: astTab ? 600 : 400,
+          }}>
+          {t('ast')}
+        </button>
+        {astLoading && (
           <span style={{ fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <div className="spinner" style={{ width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             {t('analyzing')}
@@ -329,8 +367,30 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
         </button>
       </div>
 
-      <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>
-        {loadError ? (
+      <div ref={codeRef} style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: astTab ? 'row' : 'column' }}>
+        {astTab ? (
+          // AST view: tree on left, code on right
+          <>
+            <div style={{ width: 260, flexShrink: 0, borderRight: '1px solid var(--border)', overflow: 'auto', background: 'var(--bg)' }}>
+              <AstTreeView nodes={astNodes || []} onNodeClick={handleAstNodeClick} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+              {code ? (
+                <SyntaxHighlighter
+                  language={language} style={codeTheme} showLineNumbers
+                  customStyle={{ margin: 0, padding: '8px 0', fontSize: 13, lineHeight: 1.6, background: '#1a1b26', minHeight: '100%' }}
+                >
+                  {code}
+                </SyntaxHighlighter>
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)', fontSize: 13 }}>
+                  <div className="spinner" style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                  {t('analyzing')}
+                </div>
+              )}
+            </div>
+          </>
+        ) : loadError ? (
           <div style={{ padding: 40, textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
             {loadError}
           </div>

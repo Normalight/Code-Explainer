@@ -70,3 +70,11 @@ export interface ProjectQualitySummary {
     title: string;
   }[];
 }
+
+export interface AstNode {
+  type: string;
+  name: string;
+  startLine: number;
+  endLine: number;
+  children: AstNode[];
+}
