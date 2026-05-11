@@ -51,3 +51,22 @@ export interface QualityIssue {
   title: string;
   description: string;
 }
+
+export interface ProjectQualitySummary {
+  overallGrade: string;
+  fileCountAnalyzed: number;
+  criticalCount: number;
+  warningCount: number;
+  suggestionCount: number;
+  averageScores: {
+    readability: number;
+    complexity: number;
+    convention: number;
+    security: number;
+  };
+  topIssues: {
+    file: string;
+    severity: string;
+    title: string;
+  }[];
+}

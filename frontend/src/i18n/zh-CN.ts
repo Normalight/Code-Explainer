@@ -99,6 +99,13 @@ const zhCN = {
   reviewFailed: '审查失败',
   failedResponse: '获取回复失败',
   startAnalysis: '分析代码',
+
+  // Quality overview
+  qualityOverview: '质量概览',
+  analyzedFiles: '个文件已分析',
+  averageScores: '平均分数',
+  topIssues: '主要问题',
+  noQualityData: '暂无质量评估数据',
 } as const;
 
 export type TranslationKey = keyof typeof zhCN;

@@ -90,6 +90,13 @@ const enUS: Record<TranslationKey, string> = {
   reviewFailed: 'Review failed',
   failedResponse: 'Failed to get response',
   startAnalysis: 'Analyze Code',
+
+  // Quality overview
+  qualityOverview: 'Quality Overview',
+  analyzedFiles: 'files analyzed',
+  averageScores: 'Average Scores',
+  topIssues: 'Top Issues',
+  noQualityData: 'No quality assessment data available',
 };
 
 export default enUS;

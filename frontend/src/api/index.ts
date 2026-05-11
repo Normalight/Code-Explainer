@@ -1,4 +1,4 @@
-import type { FileTreeNode, ProjectInfo, ProgressInfo } from '../types';
+import type { FileTreeNode, ProjectInfo, ProgressInfo, ProjectQualitySummary } from '../types';
 
 const API_BASE = '/api/projects';
 
@@ -85,6 +85,12 @@ export async function getQuality(projectId: number, filePath: string, lang = 'zh
   const res = await fetch(`${API_BASE}/${projectId}/quality?filePath=${encodeURIComponent(filePath)}&lang=${encodeURIComponent(lang)}`);
   if (!res.ok) throw new Error(`Failed to get quality: ${res.status}`);
   return res.text();
+}
+
+export async function getQualitySummary(projectId: number): Promise<ProjectQualitySummary> {
+  const res = await fetch(`${API_BASE}/${projectId}/quality-summary`);
+  if (!res.ok) throw new Error(`Failed to get quality summary: ${res.status}`);
+  return res.json();
 }
 
 export function getExplainUrl(projectId: number, filePath: string, lang = 'zh'): string {

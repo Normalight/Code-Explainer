@@ -318,6 +318,15 @@ export default function CodeViewPanel({ projectId, filePath, onClose }: Props) {
           </span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text)', opacity: 0.4 }}>{codeLines.length} lines</span>
+        <button onClick={onClose}
+          style={{
+            background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer',
+            padding: '2px 4px', fontSize: 14, opacity: 0.5, display: 'flex',
+          }}
+          title={t('close')}
+        >
+          ✕
+        </button>
       </div>
 
       <div ref={codeRef} style={{ flex: 1, overflow: 'auto' }}>

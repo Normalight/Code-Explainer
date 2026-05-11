@@ -4,8 +4,10 @@ import FileTree from '../components/FileTree';
 import UploadZone from '../components/UploadZone';
 import CodeViewPanel from './CodeViewPage';
 import SettingsModal from '../components/SettingsModal';
-import { getFileTree, getStructure, getDependencies, importGitHub, getCommits, getCommitDiff, reviewCommit, getChatSessions, deleteChatSession, listProjects } from '../api';
+import QualityOverviewCard from '../components/QualityOverviewCard';
+import { getFileTree, getStructure, getDependencies, importGitHub, getCommits, getCommitDiff, reviewCommit, getChatSessions, deleteChatSession, listProjects, getQualitySummary } from '../api';
 import type { CommitInfo, SessionInfo } from '../api';
+import type { ProjectQualitySummary } from '../types';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import SearchModal from '../components/SearchModal';
@@ -31,6 +33,7 @@ export default function ProjectPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [tree, setTree] = useState<any>(null);
   const [structure, setStructure] = useState<string | null>(null);
+  const [qualitySummary, setQualitySummary] = useState<ProjectQualitySummary | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | undefined>();
   const [focusPath, setFocusPath] = useState<string | undefined>();
   const [tab, setTab] = useState<Tab>('overview');
@@ -89,6 +92,7 @@ export default function ProjectPage() {
     getStructure(id, lang).then((s) => setStructure(s.analysis)).catch(console.error);
     getDependencies(id).then(setGraphData).catch(() => {});
     getCommits(id).then(setCommits).catch(() => {});
+    getQualitySummary(id).then(setQualitySummary).catch(() => {});
     loadSessions(id);
   }, [loadSessions]);
 
@@ -497,6 +501,7 @@ export default function ProjectPage() {
             <div style={{ flex: 1, overflow: tab === 'chat' ? 'hidden' : 'auto' }}>
               {tab === 'overview' ? (
                 <div style={{ padding: '32px 40px' }}>
+                  {qualitySummary && <QualityOverviewCard summary={qualitySummary} />}
                   {structure ? (
                     <StructureDisplay structure={structure} onLocateInTree={handleLocateInTree} t={t} />
                   ) : (
