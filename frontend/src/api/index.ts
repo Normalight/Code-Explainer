@@ -1,4 +1,4 @@
-import type { FileTreeNode, ProjectInfo, ProgressInfo, ProjectQualitySummary, AstNode } from '../types';
+import type { FileTreeNode, ProjectInfo, ProjectQualitySummary, AstNode } from '../types';
 
 const API_BASE = '/api/projects';
 
@@ -67,12 +67,6 @@ export async function getFileContent(projectId: number, filePath: string): Promi
   const res = await fetch(`${API_BASE}/${projectId}/files/${encodeFilePath(filePath)}`);
   if (!res.ok) throw new Error(`Failed to load file: ${res.status}`);
   return res.text();
-}
-
-export async function getProgress(projectId: number): Promise<ProgressInfo> {
-  const res = await fetch(`${API_BASE}/${projectId}/progress`);
-  if (!res.ok) throw new Error(`Failed to get progress: ${res.status}`);
-  return res.json();
 }
 
 export async function getStructure(projectId: number, lang = 'zh'): Promise<{ analysis: string }> {

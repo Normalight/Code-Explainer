@@ -31,7 +31,6 @@ const zhCN = {
   aiChat: 'AI 对话',
 
   // Overview
-  analysisProgress: '分析进度',
   sourceFiles: '个源码文件',
   nonCodeSkipped: '个非代码文件已跳过',
   exportReport: '导出报告',
@@ -74,9 +73,6 @@ const zhCN = {
   preview: '预览',
 
   // File tree
-  analysisDone: '分析完成',
-  analysisAnalyzing: '分析中',
-  analysisPending: '待分析',
 
   // Recent projects
   recentProjects: '最近项目',

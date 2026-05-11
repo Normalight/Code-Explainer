@@ -148,15 +148,6 @@ function TreeNode({ node, parentPath, depth, onSelectFile, selectedPath, focusPa
         {isFile && node.lineCount != null && (
           <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.4, flexShrink: 0 }}>{node.lineCount}L</span>
         )}
-
-        {/* Analysis status dot for analyzable files */}
-        {isFile && node.analyzable && (
-          <span style={{
-            width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-            background: node.analysisStatus === 'DONE' ? '#22c55e' :
-                        node.analysisStatus === 'ANALYZING' ? '#eab308' : 'var(--border)',
-          }} />
-        )}
       </div>
 
       {/* Children (only if directory and not collapsed) */}

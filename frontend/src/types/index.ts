@@ -4,7 +4,6 @@ export interface FileTreeNode {
   language?: string;
   lineCount?: number;
   analyzable?: boolean;
-  analysisStatus?: 'PENDING' | 'ANALYZING' | 'DONE';
   children?: FileTreeNode[];
 }
 
@@ -16,14 +15,6 @@ export interface ProjectInfo {
   totalIssuesCritical: number;
   totalIssuesWarning: number;
   totalIssuesSuggestion: number;
-}
-
-export interface ProgressInfo {
-  total: number;
-  completed: number;
-  analyzing: number;
-  totalFiles: number;
-  skippedFiles: number;
 }
 
 export interface SegmentInfo {

@@ -28,7 +28,6 @@ const enUS: Record<TranslationKey, string> = {
   commits: 'Commits',
   aiChat: 'AI Chat',
 
-  analysisProgress: 'Analysis Progress',
   sourceFiles: 'source files',
   nonCodeSkipped: 'non-code files skipped',
   exportReport: 'Export Report',
@@ -66,10 +65,6 @@ const enUS: Record<TranslationKey, string> = {
   filePreview: 'File Preview',
   source: 'Source',
   preview: 'Preview',
-
-  analysisDone: 'Done',
-  analysisAnalyzing: 'Analyzing',
-  analysisPending: 'Pending',
 
   recentProjects: 'Recent Projects',
 
